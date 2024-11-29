@@ -1,0 +1,203 @@
+/* General Reset */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  background-color: #C2FFC7; /* Page background color */
+}
+
+
+/* Main Container */
+/* Ensure the cursor is default on the container */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #C2FFC7;
+  padding: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  cursor: default; /* Default cursor for non-interactive areas */
+}
+
+/* When hovering over form fields, show the text cursor */
+.form-section input, .form-section button {
+  cursor: pointer; /* Show pointer when hovering over input or button */
+}
+
+
+.group-logo {
+  width: 500px; /* Increase width for a larger logo */
+  height: auto; /* Maintain aspect ratio */
+  margin-bottom: 20px; /* Add more spacing below the logo */
+  transition: transform 0.3s ease; /* Add smooth zoom effect on hover */
+}
+
+.group-logo:hover {
+  transform: scale(1.4); /* Slightly enlarge the logo when hovered */
+}
+
+
+
+/* Form Section */
+.form-section {
+  width: 350px;
+  background-color: #526E48;
+  padding: 30px;
+  padding-right: 50px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+  user-select: none; /* Prevent text selection on the entire form */
+}
+.form-section input, .form-section button {
+  cursor: pointer; /* Show pointer when hovering over input or button */
+}
+
+/* Prevent I-beam on non-interactive areas within the form */
+.form-section *:not(input):not(button) {
+  cursor: default; /* Default cursor for all elements except input/button */
+}
+.group-logo {
+  width: 250px; /* Adjust the size as needed */
+  margin-bottom: 10px; /* Space between the logo and the title */
+}
+.form-section input::placeholder {
+  color: #526E48;
+}
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #ffffff;
+  margin-bottom: 30px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  color: #ffffff;
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+.input {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  position: relative;
+  border-radius: 20px;
+  margin-bottom: 15px;
+  margin-right: 20px;
+  background-color: #62825D;
+  transition: transform 0.3s ease;
+  color: #fff;
+}
+
+.input:hover{
+  transform: scale(1.05)
+}
+
+.password-container {
+  position: relative;
+  
+}
+
+.eye-icon {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.button {
+  width: 105%;
+  padding: 10px;
+  border: none;
+  border-radius: 20px;
+  background-color: #62825D;
+  color: #fff;
+  font-weight: bold;
+  margin-left: 4px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  margin-top: 10px;
+}
+
+.button:hover {
+  background-color: #1d8136;
+  transform: scale(1.05)
+}
+
+.or-text {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #fff;
+}
+
+.account-circles {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.account-circle {
+  width: 40px;
+  height: 40px;
+  background-color: #fff;
+  border-radius: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 10px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.account-circle:hover {
+  transform: scale(0.9); /* Zoom out effect */
+}
+
+.account-icon {
+  width: 24px;
+  height: auto;
+}
+.google-button {
+  background-color: rgb(10, 0, 0);
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin: 10px;
+}
+
+.google-logo {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}

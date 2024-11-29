@@ -1,0 +1,26 @@
+{
+  "name": "sifri-mail-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@azure/msal-node": "^2.16.2",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-session": "^1.18.1",
+    "fs": "^0.0.1-security",
+    "googleapis": "^144.0.0",
+    "https": "^1.0.0",
+    "msal-node": "^0.0.1-security",
+    "nylas": "^7.7.1",
+    "python-shell": "^5.0.0"
+  }
+}
