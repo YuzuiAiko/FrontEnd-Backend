@@ -17,6 +17,7 @@ const Homepage = () => {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("Inbox");
 
   useEffect(() => {
     fetch("https://localhost:5000/auth/gmail/emails", {
@@ -26,8 +27,13 @@ const Homepage = () => {
       .then((response) => response.json())
       .then((data) => {
         if (data.emails) {
-          setEmails(data.emails);
-          setFilteredEmails(data.emails);
+          const formattedEmails = data.emails.map(email => ({
+            ...email,
+            classification: Array.isArray(email.classification) ? email.classification : [email.classification]
+          }));
+          setEmails(formattedEmails);
+          setFilteredEmails(formattedEmails);
+          console.log("Fetched emails with classifications:", formattedEmails);
         } else {
           setError("No emails found.");
         }
@@ -41,7 +47,7 @@ const Homepage = () => {
   }, []);
 
   useEffect(() => {
-    let updatedEmails = emails.filter(
+    const updatedEmails = emails.filter(
       (email) =>
         email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
         email.sender.toLowerCase().includes(searchQuery.toLowerCase())
@@ -55,8 +61,20 @@ const Homepage = () => {
       updatedEmails.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
-    setFilteredEmails(updatedEmails);
-  }, [searchQuery, sortCriteria, emails]);
+    // Filter emails based on active category
+    if (activeCategory !== "Inbox") {
+      setFilteredEmails(
+        updatedEmails.filter((email) => email.classification.includes(activeCategory))
+      );
+    } else {
+      setFilteredEmails(updatedEmails);
+    }
+  }, [searchQuery, sortCriteria, emails, activeCategory]);
+
+  const handleCategoryChange = (category) => {
+    setActiveCategory(category);
+    setCurrentPage(1);
+  };
 
   if (loading) {
     return <p>Loading emails...</p>;
@@ -119,20 +137,27 @@ const Homepage = () => {
 
   return (
     <div className="homepage-container">
-      {/* Sidebar */}
       <div className={`sidebar ${sidebarVisible ? "visible" : ""}`}>
         <ul>
-          <li><a href="#inbox" onClick={() => console.log("Inbox clicked")}>Inbox</a></li>
-          <li><a href="#compose" onClick={() => handleComposeToggle("new")}>Compose</a></li>
-          <li><a href="#sent" onClick={() => console.log("Sent clicked")}>Sent</a></li>
-          <li><a href="#drafts" onClick={() => console.log("Drafts clicked")}>Drafts</a></li>
-          <li><a href="#important" onClick={() => console.log("Important clicked")}>Important</a></li>
+          <li>
+            <a href="#inbox" onClick={() => handleCategoryChange("Inbox")}>Inbox</a>
+          </li>
+          <li>
+            <a href="#important" onClick={() => handleCategoryChange("Important")}>Important</a>
+          </li>
+          <li>
+            <a href="#promotions" onClick={() => handleCategoryChange("Promotions")}>Promotions</a>
+          </li>
+          <li>
+            <a href="#spam" onClick={() => handleCategoryChange("Spam")}>Spam</a>
+          </li>
+          <li>
+            <a href="#compose" onClick={() => handleComposeToggle("new")}>Compose</a>
+          </li>
         </ul>
       </div>
 
-      {/* Main Content */}
       <div className="main-content">
-        {/* Hamburger Icon */}
         <button className="hamburger-icon" onClick={() => setSidebarVisible(!sidebarVisible)}>
           &#9776;
         </button>
@@ -167,8 +192,7 @@ const Homepage = () => {
                 >
                   <h3>{email.subject}</h3>
                   <p>From: {email.sender}</p>
-                  {/* Display the email's classification category */}
-                  <p>Category: {email.category || "Unclassified"}</p>
+                  <p>Classification: {email.classification.join(", ")}</p>  {/* Display Classification */}
                 </div>
               ))}
             </div>
@@ -187,10 +211,6 @@ const Homepage = () => {
                 )
               )}
             </div>
-
-            <div className="bottom-nav">
-              {/* Optional footer content */}
-            </div>
           </>
         ) : (
           <div className="email-detail-container">
@@ -199,6 +219,7 @@ const Homepage = () => {
             </button>
             <h2>Sender: {selectedEmail.sender}</h2>
             <h3>Subject: {selectedEmail.subject}</h3>
+            <p>Classification: {selectedEmail.classification.join(", ")}</p>  {/* Display Classification */}
             <div
               className="email-body"
               dangerouslySetInnerHTML={{
@@ -221,7 +242,6 @@ const Homepage = () => {
                 <button
                   className="close-button"
                   onClick={() => setShowCompose(false)}
-                  aria-label="Close Compose Modal"
                 >
                   ✕
                 </button>
