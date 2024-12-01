@@ -1,11 +1,19 @@
 /* General Reset */
+
+/*
+
+#A64D79
+#6A1E55
+#3B1C32
+#1A1A1D
+*/
 body, html {
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
   overflow-x: hidden; /* Prevent horizontal scroll */
-  background-color: #C2FFC7; /* Page background color */
+  background-color: #3b1c32; /* Page background color */
 }
 
 
@@ -16,7 +24,7 @@ body, html {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #C2FFC7;
+  background-color: #3b1c32;
   padding: 20px;
   box-sizing: border-box;
   width: 100%;
@@ -45,7 +53,7 @@ body, html {
 /* Form Section */
 .form-section {
   width: 350px;
-  background-color: #526E48;
+  background-color: #81316b;
   padding: 30px;
   padding-right: 50px;
   border-radius: 10px;
@@ -66,7 +74,7 @@ body, html {
   margin-bottom: 10px; /* Space between the logo and the title */
 }
 .form-section input::placeholder {
-  color: #526E48;
+  color: #ffffff;
 }
 .title {
   font-size: 24px;
@@ -101,7 +109,7 @@ body, html {
   border-radius: 20px;
   margin-bottom: 15px;
   margin-right: 20px;
-  background-color: #62825D;
+  background-color: #3B1C32;
   transition: transform 0.3s ease;
   color: #fff;
 }
@@ -130,7 +138,7 @@ body, html {
   padding: 10px;
   border: none;
   border-radius: 20px;
-  background-color: #62825D;
+  background-color: #3B1C32;
   color: #fff;
   font-weight: bold;
   margin-left: 4px;
@@ -140,7 +148,7 @@ body, html {
 }
 
 .button:hover {
-  background-color: #1d8136;
+  background-color: #1A1A1D;
   transform: scale(1.05)
 }
 
