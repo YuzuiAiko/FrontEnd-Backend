@@ -40,9 +40,6 @@ app.get("/test-session", (req, res) => {
 });
 
 const users = [
-  { email: "ldf.gaming098@gmail.com", password: "$Hamgod123" },
-  { email: "christianfriolo2003@gmail.com", password: "$hamgod123" },
-  { email: "christianqwert107@gmail.com", password: "zaytanman123" },
   { email: "example2@gmail.com", password: "examplePass2" },
 ];
 
