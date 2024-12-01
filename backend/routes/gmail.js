@@ -1,66 +1,79 @@
-const express = require("express");
-const { google } = require("googleapis");
+import express from "express";
+import { google } from "googleapis";
+import axios from "axios"; // Import axios for HTTP requests
 
 const router = express.Router();
+const GMAIL_CLIENT_ID = ;
+const GMAIL_CLIENT_SECRET = ;
+const GMAIL_REDIRECT_URI = "https://localhost:5000/auth/gmail/callback";
 
-// Initialize OAuth2 client
 const oauth2Client = new google.auth.OAuth2(
-  process.env.GMAIL_CLIENT_ID,
-  process.env.GMAIL_CLIENT_SECRET,
-  process.env.GMAIL_REDIRECT_URI
+  GMAIL_CLIENT_ID,
+  GMAIL_CLIENT_SECRET,
+  GMAIL_REDIRECT_URI
 );
 
-// Gmail login route
 router.get("/login", (req, res) => {
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: "offline",
     scope: [
       "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/gmail.modify",
+      "https://www.googleapis.com/auth/gmail.compose",
       "https://www.googleapis.com/auth/gmail.labels",
-      "https://www.googleapis.com/auth/gmail.send",  // Added the send email scope
     ],
   });
   res.redirect(authUrl);
 });
 
-// Gmail callback route
-// Gmail callback route
 router.get("/callback", async (req, res) => {
-  const code = req.query.code;
-  if (!code) {
-    return res.status(400).json({ error: "Missing authorization code" });
-  }
-
   try {
-    const { tokens } = await oauth2Client.getToken(code);
+    const { tokens } = await oauth2Client.getToken(req.query.code);
     oauth2Client.setCredentials(tokens);
-
-    // Store tokens in the session
     req.session.tokens = tokens;
 
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
-    const response = await gmail.users.messages.list({ userId: "me", maxResults: 50 });
+    const response = await gmail.users.messages.list({ 
+      userId: "me", 
+      maxResults: 99,
+      labelIds: ["INBOX"]  // Fetch emails with the INBOX label
+    });
 
     if (response.data.messages) {
       const messageIds = response.data.messages.map((msg) => msg.id);
       const messages = [];
+      const emailBodies = [];
 
       for (const messageId of messageIds) {
         const messageDetails = await gmail.users.messages.get({ userId: "me", id: messageId });
+        const customLabels = mapGmailLabels(messageDetails.data.labelIds);  // Map Gmail labels
+
         const emailData = {
           sender: extractEmailSender(getEmailHeader(messageDetails.data.payload.headers, "From")),
           subject: getEmailHeader(messageDetails.data.payload.headers, "Subject"),
           body: getEmailBody(messageDetails.data.payload),
+          labels: customLabels  // Include custom labels
         };
         messages.push(emailData);
+        emailBodies.push(emailData.body);
       }
 
-      // Store emails in session
+      console.log("Email Bodies to Classify: ", emailBodies);  // Log email bodies being sent
+
+      // Call the classifier endpoint
+      const classificationResponse = await axios.post("http://localhost:5001/classify", {
+        emails: emailBodies
+      });
+
+      const classifications = classificationResponse.data.predictions;
+      messages.forEach((msg, index) => {
+        msg.classification = classifications[index];
+      });
+
       req.session.emails = messages;
+      console.log("Emails stored in session:", req.session.emails);
 
-      console.log("Emails stored in session:", req.session.emails);  // Debugging session content
-
-      return res.redirect("https://localhost:3000/home"); // Redirect to home after storing emails
+      return res.redirect("https://localhost:3000/home");
     } else {
       res.status(404).json({ error: "No Gmail messages found." });
     }
@@ -71,40 +84,47 @@ router.get("/callback", async (req, res) => {
 });
 
 
-// API to fetch stored emails
+// Map Gmail Labels to Custom Labels
+function mapGmailLabels(gmailLabels) {
+  const labelMap = {
+    "INBOX": "Inbox",
+    "IMPORTANT": "Important",
+    "SPAM": "Spam",
+    "DRAFT": "Draft",
+    "SENT": "Sent",
+    // Add other mappings as needed
+  };
+
+  return gmailLabels.map(label => labelMap[label] || label);
+}
+
+
 router.get("/emails", (req, res) => {
   if (!req.session || !req.session.emails) {
     return res.status(404).json({ error: "No emails found in session." });
   }
 
-  console.log("Session Emails: ", req.session.emails); // Debugging session data
+  console.log("Session Emails: ", req.session.emails);
   res.json({ emails: req.session.emails });
 });
 
-
-// Send email route
 router.post("/send", async (req, res) => {
-  // Check if tokens are in the session
   if (!req.session.tokens) {
     return res.status(400).json({ error: "User not authorized" });
   }
 
   const { to, subject, body } = req.body;
 
-  // Check if the required parameters are provided
   if (!to || !subject || !body) {
     return res.status(400).json({ error: "Missing required email parameters" });
   }
 
-  // Set credentials using tokens from session
   oauth2Client.setCredentials(req.session.tokens);
   const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
-  // Create the raw message
   const rawMessage = createRawMessage(to, subject, body);
 
   try {
-    // Send the email
     const response = await gmail.users.messages.send({
       userId: "me",
       requestBody: {
@@ -114,7 +134,6 @@ router.post("/send", async (req, res) => {
 
     console.log("Email sent:", response);
 
-    // Send a success response
     res.json({ success: true, message: "Email sent successfully!" });
   } catch (error) {
     console.error("Error sending email:", error.response ? error.response.data : error);
@@ -122,11 +141,6 @@ router.post("/send", async (req, res) => {
   }
 });
 
-
-
-
-
-// Helper function to create a raw email message
 function createRawMessage(to, subject, body) {
   const messageParts = [
     `To: ${to}`,
@@ -137,25 +151,20 @@ function createRawMessage(to, subject, body) {
   ];
   const message = messageParts.join("\n");
 
-  // Encode the message to base64url format
   return Buffer.from(message).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
-
-// Extract header data
 function getEmailHeader(headers, name) {
   const header = headers.find((h) => h.name === name);
   return header ? header.value : null;
 }
 
-// Extract sender's email from "From" header
 function extractEmailSender(fromHeader) {
   if (!fromHeader) return "Unknown Sender";
   const match = fromHeader.match(/<([^>]+)>/);
   return match ? match[1] : fromHeader;
 }
 
-// Extract the email body from the message
 function getEmailBody(payload) {
   if (payload.body && payload.body.data) {
     return Buffer.from(payload.body.data, "base64").toString("utf-8");
@@ -171,4 +180,4 @@ function getEmailBody(payload) {
   return "No HTML email body found.";
 }
 
-module.exports = router;
+export default router;
