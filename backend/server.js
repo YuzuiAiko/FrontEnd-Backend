@@ -1,76 +1,89 @@
-import express from "express";
-import https from "https";
-import fs from "fs";
-import bodyParser from "body-parser";
-import cors from "cors";
-import session from "express-session";
-import dotenv from "dotenv";
-import gmailRoutes from "./routes/gmail.js";
-// Remove the invalid import
-// import { EmailClassifier } from "./classifier/svm_model"; 
+import express from "express"; // Import the express module
+import https from "https"; // Import the https module for creating HTTPS server
+import fs from "fs"; // Import the fs module for file system operations
+import bodyParser from "body-parser"; // Import the body-parser module to parse request bodies
+import cors from "cors"; // Import the cors module to enable Cross-Origin Resource Sharing (CORS)
+import session from "express-session"; // Import the express-session module for session management
+import dotenv from "dotenv"; // Import the dotenv module to load environment variables
+import gmailRoutes from "./routes/gmail.js"; // Import Gmail-related routes from a separate file
 
-dotenv.config();
+dotenv.config(); // Load environment variables from the .env file into process.env
 
-const app = express();
-app.use(bodyParser.json());
+const app = express(); // Create an Express application instance
 
+app.use(bodyParser.json()); // Use body-parser to parse JSON request bodies
+
+// Enable CORS to allow cross-origin requests from the specified origin
 app.use(
   cors({
-    origin: "https://localhost:3000",
-    methods: ["GET", "POST"],
-    credentials: true,
+    origin: "https://localhost:3000", // Allow requests only from this origin
+    methods: ["GET", "POST"], // Allow only GET and POST methods
+    credentials: true, // Enable sending credentials (e.g., cookies, authorization headers)
   })
 );
 
+// Configure session middleware for managing user sessions
 app.use(
   session({
-    secret: "asdfqwerqefadsfasdfqwerqe",
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false },
+    secret: "asdfqwerqefadsfasdfqwerqe", // Secret key used to sign session cookies
+    resave: false, // Prevent resaving a session that hasn't been modified
+    saveUninitialized: true, // Save sessions that are new but unmodified
+    cookie: { secure: false }, // Use non-secure cookies (should be secure in production)
   })
 );
 
+// Define a route for the root URL ("/") that sends a confirmation message
 app.get("/", (req, res) => {
-  res.send("Hello, the server is running!");
+  res.send("Hello, the server is running!"); // Response for the root route
 });
 
+// Define a route to test session functionality and retrieve stored emails
 app.get("/test-session", (req, res) => {
-  res.json({ emails: req.session.emails });
+  res.json({ emails: req.session.emails }); // Respond with emails stored in the session
 });
 
+// Define an array of user credentials for authentication
 const users = [
+  { email: "ldf.gaming098@gmail.com", password: "$Hamgod123" },
+  { email: "christianfriolo2003@gmail.com", password: "$hamgod123" },
+  { email: "christianqwert107@gmail.com", password: "zaytanman123" },
   { email: "example2@gmail.com", password: "examplePass2" },
 ];
 
+// Define a login route for authenticating users
 app.post("/api/login", (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body; // Extract email and password from the request body
   const user = users.find(
-    (user) => user.email === email && user.password === password
+    (user) => user.email === email && user.password === password // Find a matching user
   );
 
   if (user) {
-    req.session.emails = email;
-    console.log("Session after login:", req.session);
+    req.session.emails = email; // Store the user's email in the session
+    console.log("Session after login:", req.session); // Log session details for debugging
 
-    res.status(200).json({ message: "Login successful", email: user.email });
+    res.status(200).json({ message: "Login successful", email: user.email }); // Respond with success
   } else {
-    res.status(400).json({ message: "Invalid email or password" });
+    res.status(400).json({ message: "Invalid email or password" }); // Respond with error
   }
 });
 
+// Use Gmail routes for handling authentication and email operations
 app.use("/auth/gmail", gmailRoutes);
 
+// Define a catch-all route to handle unknown or unsupported routes
 app.use((req, res) => {
-  res.status(404).send("Route not found");
+  res.status(404).send("Route not found"); // Respond with a 404 Not Found error
 });
 
+// Load SSL certificate and key for HTTPS server
 const options = {
-  key: fs.readFileSync(process.env.SSL_KEY_FILE || "ssl/localhost-key.pem"),
-  cert: fs.readFileSync(process.env.SSL_CRT_FILE || "ssl/localhost-cert.pem"),
+  key: fs.readFileSync(process.env.SSL_KEY_FILE || "ssl/localhost-key.pem"), // Load SSL private key
+  cert: fs.readFileSync(process.env.SSL_CRT_FILE || "ssl/localhost-cert.pem"), // Load SSL certificate
 };
 
-const PORT = process.env.PORT || 5000;
+// Start the HTTPS server on the specified port
+const PORT = process.env.PORT || 5000; // Use port from environment variable or default to 5000
 https.createServer(options, app).listen(PORT, () => {
-  console.log(`Server running at https://localhost:${PORT}`);
+  console.log(`Server running at https://localhost:${PORT}`); // Log server start message
 });
+
