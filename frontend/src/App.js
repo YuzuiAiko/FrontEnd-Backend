@@ -1,63 +1,64 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { gapi } from "gapi-script";
-import axios from "axios";
-import "./App.css";
-import GmailLogo from "./assets/Gmail_logo.png";
-import GroupLogo from "./assets/F (1).png";
-import Homepage from "./components/Homepage";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"; // React Router for navigation
+import { gapi } from "gapi-script"; // Google API client for Gmail authentication
+import axios from "axios"; // HTTP client for backend communication
+import "./App.css"; // Import application styles
+import GmailLogo from "./assets/Gmail_logo.png"; // Gmail logo for the UI
+import GroupLogo from "./assets/F (1).png"; // Application group logo
+import Homepage from "./components/Homepage"; // Homepage component
 
 function App() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginError, setLoginError] = useState(null);
+  // State variables for managing email, password, and login state
+  const [email, setEmail] = useState(""); // User's email input
+  const [password, setPassword] = useState(""); // User's password input
+  const [showPassword, setShowPassword] = useState(false); // Toggle to show/hide password
+  const [loginError, setLoginError] = useState(null); // Error message for login issues
 
+  // useEffect to initialize Gmail API client when the app loads
   useEffect(() => {
-    // Initialize Gmail API
     const start = () => {
       gapi.client.init({
-        clientId: process.env.REACT_APP_GMAIL_CLIENT_ID,
-        scope: "email",
+        clientId: process.env.REACT_APP_GMAIL_CLIENT_ID, // Gmail API Client ID from environment variables
+        scope: "email", // Gmail API scope
         discoveryDocs: [
-          "https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest",
+          "https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest", // Gmail API discovery document
         ],
-        ux_mode: "redirect",
+        ux_mode: "redirect", // Redirect user after authentication
       });
     };
-    gapi.load("client:auth2", start);
+    gapi.load("client:auth2", start); // Load the Gmail API client and initialize
   }, []);
 
-  // Function to handle Gmail login
+  // Function to handle Gmail login via OAuth
   const handleGmailLogin = () => {
-    window.location.href = "https://localhost:5000/auth/gmail/login";
+    window.location.href = "https://localhost:5000/auth/gmail/login"; // Redirect to backend Gmail OAuth login
   };
 
-  // Handle email and password login with the backend
+  // Function to handle email and password login with the backend
   const handleEmailLogin = async () => {
     if (email && password) {
       try {
-        // First, attempt email/password login with backend
+        // Send email and password to the backend for authentication
         const response = await axios.post("https://localhost:5000/api/login", {
           email,
           password,
         });
 
-        console.log("Login successful:", response.data);
-        setLoginError(null); // Clear any previous errors
+        console.log("Login successful:", response.data); // Log success response
+        setLoginError(null); // Clear any previous login errors
 
-        // After email/password login success, redirect to Gmail OAuth
-        window.location.href = "https://localhost:5000/auth/gmail/login"; // Redirect to Gmail login after email/password login
+        // Redirect to Gmail login after successful email/password login
+        window.location.href = "https://localhost:5000/auth/gmail/login";
       } catch (error) {
-        console.error("Login failed:", error.response ? error.response.data.message : error.message);
-        setLoginError("Invalid email or password.");
+        console.error("Login failed:", error.response ? error.response.data.message : error.message); // Log error
+        setLoginError("Invalid email or password."); // Display error message
       }
     } else {
-      setLoginError("Please enter both email and password.");
+      setLoginError("Please enter both email and password."); // Validation error for empty fields
     }
   };
 
-  return (
+   return (
     <Router>
       <Routes>
         <Route
