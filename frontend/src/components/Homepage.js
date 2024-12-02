@@ -1,95 +1,151 @@
-import React, { useEffect, useState } from "react";
-import DOMPurify from "dompurify";
-import "./homepage.css";
+import React, { useEffect, useState, useCallback } from "react";
+import DOMPurify from "dompurify"; // To sanitize HTML and prevent XSS attacks
+import "./homepage.css"; // Importing styles for the component
 
-const Homepage = () => {
-  const [emails, setEmails] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedEmail, setSelectedEmail] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortCriteria, setSortCriteria] = useState("date");
-  const [filteredEmails, setFilteredEmails] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [emailsPerPage] = useState(10);
-  const [showCompose, setShowCompose] = useState(false);
-  const [recipient, setRecipient] = useState("");
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
-  const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeCategory, setActiveCategory] = useState("Inbox");
+const Homepage = ({ userEmail }) => {
+  // State hooks for managing various aspects of the component
+  const [emails, setEmails] = useState([]); // Stores the fetched emails
+  const [loading, setLoading] = useState(true); // Tracks loading state
+  const [error, setError] = useState(null); // Tracks errors
+  const [selectedEmail, setSelectedEmail] = useState(null); // Stores the selected email
+  const [searchQuery, setSearchQuery] = useState(""); // Manages the search input value
+  const [sortCriteria, setSortCriteria] = useState("date"); // Tracks sorting criteria
+  const [filteredEmails, setFilteredEmails] = useState([]); // Stores filtered emails
+  const [currentPage, setCurrentPage] = useState(1); // Tracks the current page for pagination
+  const [emailsPerPage] = useState(10); // Defines how many emails to show per page
+  const [showCompose, setShowCompose] = useState(false); // Toggles the compose email modal
+  const [recipient, setRecipient] = useState(""); // Stores the recipient's email
+  const [subject, setSubject] = useState(""); // Stores the subject of the email
+  const [body, setBody] = useState(""); // Stores the body of the email
+  const [sidebarVisible, setSidebarVisible] = useState(false); // Toggles the sidebar visibility
+  const [activeCategory, setActiveCategory] = useState("Inbox"); // Tracks the active email category
 
-  useEffect(() => {
+  // Fetch emails from the server
+  const fetchEmails = useCallback(() => {
     fetch("https://localhost:5000/auth/gmail/emails", {
       method: "GET",
-      credentials: "include",
+      credentials: "include", // Includes credentials for authentication
     })
       .then((response) => response.json())
       .then((data) => {
         if (data.emails) {
           const formattedEmails = data.emails.map(email => ({
             ...email,
-            classification: Array.isArray(email.classification) ? email.classification : [email.classification]
+            classification: Array.isArray(email.classification) 
+              ? email.classification 
+              : [email.classification], // Ensure classification is always an array
           }));
-          setEmails(formattedEmails);
-          setFilteredEmails(formattedEmails);
+          setEmails(formattedEmails); // Update state with emails
+          setFilteredEmails(formattedEmails); // Initialize filtered emails
           console.log("Fetched emails with classifications:", formattedEmails);
         } else {
-          setError("No emails found.");
+          setError("No emails found."); // Handle case with no emails
         }
-        setLoading(false);
+        setLoading(false); // Turn off loading state
       })
       .catch((error) => {
         console.error("Error fetching emails:", error);
-        setError("Failed to load emails.");
-        setLoading(false);
+        setError("Failed to load emails."); // Handle errors during fetch
+        setLoading(false); // Turn off loading state
       });
-  }, []);
+  }, []); // Empty dependency array ensures this function doesn't change
 
+  useEffect(() => {
+    fetchEmails(); // Initial email fetch
+    const intervalId = setInterval(fetchEmails, 30000); // Poll server every 30 seconds
+
+    return () => clearInterval(intervalId); // Cleanup interval on component unmount
+  }, [fetchEmails]); // Dependency ensures it reruns only if fetchEmails changes
+
+  // Merge sort algorithm for sorting emails
+  const mergeSort = useCallback((array, sortBy) => {
+    if (array.length <= 1) return array; // Base case for recursion
+
+    const middle = Math.floor(array.length / 2);
+    const left = mergeSort(array.slice(0, middle), sortBy); // Sort left half
+    const right = mergeSort(array.slice(middle), sortBy); // Sort right half
+
+    return merge(left, right, sortBy); // Merge sorted halves
+  }, []); // Empty dependency ensures stable reference
+
+  // Helper function to merge two sorted arrays
+  const merge = (left, right, sortBy) => {
+    let resultArray = [];
+    let leftIndex = 0;
+    let rightIndex = 0;
+
+    while (leftIndex < left.length && rightIndex < right.length) {
+      if (sortBy === "sender") {
+        if (left[leftIndex].sender.localeCompare(right[rightIndex].sender) < 0) {
+          resultArray.push(left[leftIndex]); // Push from left array
+          leftIndex++;
+        } else {
+          resultArray.push(right[rightIndex]); // Push from right array
+          rightIndex++;
+        }
+      } else if (sortBy === "subject") {
+        if (left[leftIndex].subject.localeCompare(right[rightIndex].subject) < 0) {
+          resultArray.push(left[leftIndex]); // Push from left array
+          leftIndex++;
+        } else {
+          resultArray.push(right[rightIndex]); // Push from right array
+          rightIndex++;
+        }
+      } else {
+        if (new Date(left[leftIndex].date) > new Date(right[rightIndex].date)) { // Sort by date
+          resultArray.push(left[leftIndex]);
+          leftIndex++;
+        } else {
+          resultArray.push(right[rightIndex]);
+          rightIndex++;
+        }
+      }
+    }
+
+    return resultArray
+      .concat(left.slice(leftIndex)) // Append remaining left elements
+      .concat(right.slice(rightIndex)); // Append remaining right elements
+  };
+
+  // Filter and sort emails based on search query, sorting criteria, and active category
   useEffect(() => {
     const updatedEmails = emails.filter(
       (email) =>
         email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        email.sender.toLowerCase().includes(searchQuery.toLowerCase())
+        email.sender.toLowerCase().includes(searchQuery.toLowerCase()) // Match search query
     );
 
-    if (sortCriteria === "sender") {
-      updatedEmails.sort((a, b) => a.sender.localeCompare(b.sender));
-    } else if (sortCriteria === "subject") {
-      updatedEmails.sort((a, b) => a.subject.localeCompare(b.subject));
-    } else {
-      updatedEmails.sort((a, b) => new Date(b.date) - new Date(a.date));
-    }
+    setFilteredEmails(mergeSort(updatedEmails, sortCriteria)); // Sort filtered emails
 
-    // Filter emails based on active category
     if (activeCategory !== "Inbox") {
-      setFilteredEmails(
-        updatedEmails.filter((email) => email.classification.includes(activeCategory))
+      setFilteredEmails((prevFilteredEmails) =>
+        prevFilteredEmails.filter((email) => email.classification.includes(activeCategory)) // Filter by category
       );
-    } else {
-      setFilteredEmails(updatedEmails);
     }
-  }, [searchQuery, sortCriteria, emails, activeCategory]);
+  }, [searchQuery, sortCriteria, emails, activeCategory, mergeSort]); // Rerun on dependency change
 
+  // Handle changing the active email category
   const handleCategoryChange = (category) => {
-    setActiveCategory(category);
-    setCurrentPage(1);
+    setActiveCategory(category); // Update active category
+    setCurrentPage(1); // Reset to first page
   };
 
   if (loading) {
-    return <p>Loading emails...</p>;
+    return <p>Loading emails...</p>; // Display while loading
   }
 
   if (error) {
-    return <p>{error}</p>;
+    return <p>{error}</p>; // Display error message
   }
 
+  // Pagination logic
   const indexOfLastEmail = currentPage * emailsPerPage;
   const indexOfFirstEmail = indexOfLastEmail - emailsPerPage;
-  const currentEmails = filteredEmails.slice(indexOfFirstEmail, indexOfLastEmail);
+  const currentEmails = filteredEmails.slice(indexOfFirstEmail, indexOfLastEmail); // Emails for current page
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber) => setCurrentPage(pageNumber); // Update current page
 
+  // Toggle compose email modal
   const handleComposeToggle = (mode = "new", email = null) => {
     if (mode === "new") {
       setRecipient("");
@@ -98,11 +154,12 @@ const Homepage = () => {
     } else if (mode === "reply" && email) {
       setRecipient(email.sender);
       setSubject(`Re: ${email.subject}`);
-      setBody(""); // Clear the body for a reply
+      setBody(""); // Clear body for reply
     }
     setShowCompose(true);
   };
 
+  // Handle sending an email
   const handleSendEmail = async () => {
     try {
       const response = await fetch("https://localhost:5000/auth/gmail/send", {
@@ -115,7 +172,7 @@ const Homepage = () => {
           subject: subject,
           body: body,
         }),
-        credentials: "include",
+        credentials: "include", // Include credentials
       });
 
       const data = await response.json();
@@ -126,6 +183,8 @@ const Homepage = () => {
         setSubject("");
         setBody("");
         setShowCompose(false);
+
+        fetchEmails(); // Refresh emails after sending
       } else {
         alert("Failed to send email");
       }
@@ -133,6 +192,12 @@ const Homepage = () => {
       console.error("Error sending email:", error);
       alert("An error occurred while sending the email.");
     }
+  };
+
+  // Format date for display
+  const formatDateTime = (dateString) => {
+    const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return new Date(dateString).toLocaleDateString(undefined, options); // Return formatted date
   };
 
   return (
@@ -146,7 +211,7 @@ const Homepage = () => {
             <a href="#important" onClick={() => handleCategoryChange("Important")}>Important</a>
           </li>
           <li>
-            <a href="#promotions" onClick={() => handleCategoryChange("Promotions")}>Promotions</a>
+            <a href="#drafts" onClick={() => handleCategoryChange("Drafts")}>Drafts</a>
           </li>
           <li>
             <a href="#spam" onClick={() => handleCategoryChange("Spam")}>Spam</a>
@@ -192,7 +257,8 @@ const Homepage = () => {
                 >
                   <h3>{email.subject}</h3>
                   <p>From: {email.sender}</p>
-                  <p>Classification: {email.classification.join(", ")}</p>  {/* Display Classification */}
+                  <p>Classification: {email.classification.join(", ")}</p>
+                  <p className="date-time">Date: {formatDateTime(email.date)}</p> {/* Display the formatted date and time */}
                 </div>
               ))}
             </div>
@@ -219,7 +285,8 @@ const Homepage = () => {
             </button>
             <h2>Sender: {selectedEmail.sender}</h2>
             <h3>Subject: {selectedEmail.subject}</h3>
-            <p>Classification: {selectedEmail.classification.join(", ")}</p>  {/* Display Classification */}
+            <p>Classification: {selectedEmail.classification.join(", ")}</p>
+            <p className="date-time">Date: {formatDateTime(selectedEmail.date)}</p> {/* Display the formatted date and time */}
             <div
               className="email-body"
               dangerouslySetInnerHTML={{
@@ -248,6 +315,12 @@ const Homepage = () => {
               </div>
               <input
                 type="text"
+                placeholder="From"
+                value={userEmail}
+                disabled
+              />
+              <input
+                type="text"
                 placeholder="Recipient's email"
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
@@ -273,3 +346,5 @@ const Homepage = () => {
 };
 
 export default Homepage;
+
+
