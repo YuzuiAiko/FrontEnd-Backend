@@ -12,16 +12,20 @@ class EmailClassifier:
         print("Loading model and vectorizer...")
         try:
             # Paths to the pre-trained model and vectorizer
-            model_path = 'C:/Users/CHRISTIAN/OneDrive/Desktop/Website_log/backend/classifier/model/svm_model.joblib'
-            vectorizer_path = 'C:/Users/CHRISTIAN/OneDrive/Desktop/Website_log/backend/classifier/model/vectorizer.joblib'
+            # Dynamically determine the directory of the current script
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+
+            # Construct paths relative to the script's location
+            model_path = os.path.join(base_dir, "model", "svm_model.joblib")
+            vectorizer_path = os.path.join(base_dir, "model", "vectorizer.joblib")
 
             # Debugging information to verify the current working directory
-            print(f"Current working directory: {os.getcwd()}")  
+            print(f"Current working directory: {os.getcwd()}")
             if not os.path.exists(model_path):
                 print(f"Model file not found: {model_path}")  # Log if model file is missing
             if not os.path.exists(vectorizer_path):
                 print(f"Vectorizer file not found: {vectorizer_path}")  # Log if vectorizer file is missing
-            
+
             # Load the model and vectorizer
             self.model = joblib.load(model_path)
             self.vectorizer = joblib.load(vectorizer_path)
@@ -45,7 +49,7 @@ class EmailClassifier:
             email_texts = [self.extract_text(email) for email in emails]
             email_tfidf = self.vectorizer.transform(email_texts)  # Vectorize the cleaned email text
             predictions = self.model.predict(email_tfidf)  # Predict email categories
-            
+
             # Map numeric predictions to corresponding labels
             labels = ["Important", "Spam", "Drafts", "Inbox"]
             labeled_predictions = [labels[p] for p in predictions]
@@ -69,7 +73,7 @@ class EmailClassifier:
         soup = BeautifulSoup(email_body, 'html.parser')  # Parse HTML content
         for script in soup(["script", "style"]):
             script.decompose()  # Remove JavaScript and CSS tags
-        
+
         # Extract plain text and remove extra whitespaces or special characters
         text = soup.get_text(separator=' ').strip()
         text = re.sub(r'\s+', ' ', text)  # Normalize spaces
@@ -79,6 +83,18 @@ class EmailClassifier:
 # Initialize the Flask app
 app = Flask(__name__)
 CORS(app)  # Enable CORS to allow requests from other origins
+
+@app.route("/", methods=["GET"])
+def home():
+    """
+    Root endpoint for the classifier API.
+    Provides basic information about the API.
+    """
+    return jsonify({"message": "Email Classifier API is running", "status": "ok"}), 200
+
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
 
 @app.route("/classify", methods=["POST"])
 def classify_emails():
