@@ -1,3 +1,10 @@
+import dotenv from "dotenv"; // Import dotenv package to load environment variables
+dotenv.config(); // Load variables from .env file into process.env
+
+if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_CLIENT_SECRET || !process.env.GMAIL_REDIRECT_URI) {
+  throw new Error("Missing required environment variables. Please check your .env file.");
+}
+
 import express from "express"; // Import the express module
 import { google } from "googleapis"; // Import the googleapis module for Google API integration
 import axios from "axios"; // Import axios for making HTTP requests
@@ -5,9 +12,9 @@ import axios from "axios"; // Import axios for making HTTP requests
 const router = express.Router(); // Create a new router instance for defining Gmail routes
 
 // Google OAuth2 client credentials
-const GMAIL_CLIENT_ID = ""; // Client ID for Google OAuth2
-const GMAIL_CLIENT_SECRET = ""; // Client Secret for Google OAuth2
-const GMAIL_REDIRECT_URI = "https://localhost:5000/auth/gmail/callback"; // Redirect URI after Google login
+const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID || ""; // Use .env or fallback
+const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET || ""; // Use .env or fallback
+const GMAIL_REDIRECT_URI = process.env.GMAIL_REDIRECT_URI || "https://localhost:5000/auth/gmail/callback"; // Use .env or fallback
 
 // Initialize the OAuth2 client with credentials for authentication
 const oauth2Client = new google.auth.OAuth2(
