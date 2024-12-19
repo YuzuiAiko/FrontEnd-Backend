@@ -6,16 +6,12 @@
             "type": "shell",
             "command": "python",
             "args": ["svm_model.py"],
-            "group": {
-                "kind": "build",
-                "isDefault": true
+            "options": {
+                "cwd": "${workspaceFolder}/backend/classifier"
             },
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
-            },
-            "options": {
-                "cwd": "${workspaceFolder}/backend/classifier"
             }
         },
         {
@@ -23,12 +19,12 @@
             "type": "shell",
             "command": "node",
             "args": ["server.js"],
+            "options": {
+                "cwd": "${workspaceFolder}/backend"
+            },
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
-            },
-            "options": {
-                "cwd": "${workspaceFolder}/backend"
             }
         },
         {
@@ -36,13 +32,21 @@
             "type": "shell",
             "command": "npm",
             "args": ["start"],
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
-            },
-            "options": {
-                "cwd": "${workspaceFolder}/frontend"
             }
+        },
+        {
+            "label": "Run All",
+            "dependsOn": [
+                "Start Python SVM Model",
+                "Start Node.js Backend",
+                "Start React Frontend"
+            ]
         }
     ]
 }
