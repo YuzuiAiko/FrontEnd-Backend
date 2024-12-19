@@ -4,10 +4,7 @@ import fs from "fs"; // Import the fs module for file system operations
 import bodyParser from "body-parser"; // Import the body-parser module to parse request bodies
 import cors from "cors"; // Import the cors module to enable Cross-Origin Resource Sharing (CORS)
 import session from "express-session"; // Import the express-session module for session management
-import dotenv from "dotenv"; // Import the dotenv module to load environment variables
 import gmailRoutes from "./routes/gmail.js"; // Import Gmail-related routes from a separate file
-
-dotenv.config(); // Load environment variables from the .env file into process.env
 
 const app = express(); // Create an Express application instance
 
@@ -28,7 +25,11 @@ app.use(
     secret: "asdfqwerqefadsfasdfqwerqe", // Secret key used to sign session cookies
     resave: false, // Prevent resaving a session that hasn't been modified
     saveUninitialized: true, // Save sessions that are new but unmodified
-    cookie: { secure: false }, // Use non-secure cookies (should be secure in production)
+    cookie: {
+      httpOnly: true,
+      secure: true, // Set to `true` if you're using HTTPS
+      sameSite: 'None', // Allow cross-origin cookie usage
+    }
   })
 );
 
