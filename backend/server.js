@@ -4,18 +4,6 @@ import fs from "fs"; // Import the fs module for file system operations
 import bodyParser from "body-parser"; // Import the body-parser module to parse request bodies
 import cors from "cors"; // Import the cors module to enable Cross-Origin Resource Sharing (CORS)
 import session from "express-session"; // Import the express-session module for session management
-import dotenv from "dotenv"; // Import the dotenv module to load environment variables
-import path from "path"; // Import the path module for working with file paths
-import { fileURLToPath } from "url"; // Import fileURLToPath to convert the module URL to a file path
-
-// Get the current directory using import.meta.url
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load environment variables from the .env file into process.env
-dotenv.config({ path: path.resolve(__dirname, '.env') }); // Load environment variables from the .env file into process.env
-// console.log("Environment variables loaded:", process.env);
-
 import gmailRoutes from "./routes/gmail.js"; // Import Gmail-related routes from a separate file
 
 const app = express(); // Create an Express application instance

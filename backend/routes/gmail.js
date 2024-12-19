@@ -1,17 +1,9 @@
 import express from "express"; // Import the express module
 import { google } from "googleapis"; // Import the googleapis module for Google API integration
 import axios from "axios"; // Import axios for making HTTP requests
+import { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REDIRECT_URI } from '../config.js';
 
 const router = express.Router(); // Create a new router instance for defining Gmail routes
-
-if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_CLIENT_SECRET || !process.env.GMAIL_REDIRECT_URI) {
-  throw new Error("Missing required environment variables. Please check your .env file.");
-}
-
-// Google OAuth2 client credentials
-const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID; // Client ID for Google OAuth2
-const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET; // Client Secret for Google OAuth2
-const GMAIL_REDIRECT_URI = process.env.GMAIL_REDIRECT_URI; // Redirect URI after Google login
 
 // Initialize the OAuth2 client with credentials for authentication
 const oauth2Client = new google.auth.OAuth2(
