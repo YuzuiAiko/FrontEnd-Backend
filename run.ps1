@@ -1,4 +1,7 @@
-# run.ps1
+# Define parameters
+param (
+    [string]$Service = "all" # Default to "all" if no parameter is provided
+)
 
 # Function to stop all running processes for the project
 function Stop-AllProcesses {
@@ -28,16 +31,32 @@ function Start-ProcessWithWindow {
     Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd '$WorkingDirectory'; $Path $Arguments"
 }
 
-# Start Python process
-Write-Host "Starting SVM Model..."
-Start-ProcessWithWindow -Path "python" -Arguments "svm_model.py" -WorkingDirectory "./backend/classifier"
+# Install dependencies for Python and Node.js
+if ($Service -eq "install" -or $Service -eq "all") {
+    Write-Host "Installing Python dependencies..."
+    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend/classifier'; pip install -r requirements.txt"
 
-# Start Node.js backend
-Write-Host "Starting Backend Server..."
-Start-ProcessWithWindow -Path "node" -Arguments "server.js" -WorkingDirectory "./backend"
+    Write-Host "Installing Node.js dependencies for backend..."
+    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend'; npm install"
 
-# Start React frontend
-Write-Host "Starting Frontend..."
-Start-ProcessWithWindow -Path "npm" -Arguments "start" -WorkingDirectory "./frontend"
+    Write-Host "Installing Node.js dependencies for frontend..."
+    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './frontend'; npm install"
+}
+
+# Start services based on the parameter
+if ($Service -eq "svm" -or $Service -eq "all") {
+    Write-Host "Starting SVM Model..."
+    Start-ProcessWithWindow -Path "python" -Arguments "svm_model.py" -WorkingDirectory "./backend/classifier"
+}
+
+if ($Service -eq "backend" -or $Service -eq "all") {
+    Write-Host "Starting Backend Server..."
+    Start-ProcessWithWindow -Path "node" -Arguments "server.js" -WorkingDirectory "./backend"
+}
+
+if ($Service -eq "frontend" -or $Service -eq "all") {
+    Write-Host "Starting Frontend..."
+    Start-ProcessWithWindow -Path "npm" -Arguments "start" -WorkingDirectory "./frontend"
+}
 
 Write-Host "All processes have been started successfully!"
