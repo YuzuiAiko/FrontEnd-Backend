@@ -33,6 +33,8 @@ router.get("/callback", async (req, res) => {
     oauth2Client.setCredentials(tokens); // Set the OAuth2 client credentials
     req.session.tokens = tokens; // Save tokens in the session
 
+    console.log("OAuth2 tokens:", tokens); // Log tokens for debugging
+
     const gmail = google.gmail({ version: "v1", auth: oauth2Client }); // Create a Gmail API client instance
 
     // Define labels to categorize emails
@@ -48,6 +50,8 @@ router.get("/callback", async (req, res) => {
         labelIds: [label], // Filter emails by label
       });
 
+      console.log(`Fetched messages for label ${label}:`, response.data); // Log fetched messages
+
       if (response.data.messages) {
         const messageIds = response.data.messages.map((msg) => msg.id); // Extract message IDs
 
@@ -57,6 +61,8 @@ router.get("/callback", async (req, res) => {
             userId: "me",
             id: messageId,
           });
+
+          console.log("Message details:", messageDetails.data); // Log message details
 
           // Map Gmail labels to custom labels
           const customLabels = mapGmailLabels(messageDetails.data.labelIds);
@@ -90,9 +96,9 @@ router.get("/callback", async (req, res) => {
     req.session.emails = messages; // Store processed emails in the session
     console.log("Emails stored in session:", req.session.emails);
 
-    return res.redirect("https://localhost:3000/home"); // Redirect to the home page
+    return res.redirect("https://localhost:5002/home"); // Redirect to the correct frontend URL
   } catch (error) {
-    console.error("Gmail login error:", error.message); // Log any errors
+    console.error("Error in Gmail callback:", error); // Log detailed error
     res.status(500).json({ error: "Failed to fetch Gmail emails." }); // Respond with an error
   }
 });
