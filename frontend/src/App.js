@@ -38,8 +38,9 @@ function App() {
   const handleEmailLogin = async () => {
     if (email && password) {
       try {
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5003"; // Use environment variable or default to 5003
         // Send email and password to the backend for authentication
-        const response = await axios.post("https://localhost:5000/api/login", {
+        const response = await axios.post(`${backendUrl}/api/login`, {
           email,
           password,
         });

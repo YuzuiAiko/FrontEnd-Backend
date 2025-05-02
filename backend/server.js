@@ -13,7 +13,7 @@ app.use(bodyParser.json()); // Use body-parser to parse JSON request bodies
 // Enable CORS to allow cross-origin requests from the specified origin
 app.use(
   cors({
-    origin: "https://localhost:3000", // Allow requests only from this origin
+    origin: "https://localhost:3000", // Ensure this matches the frontend's HTTPS URL
     methods: ["GET", "POST"], // Allow only GET and POST methods
     credentials: true, // Enable sending credentials (e.g., cookies, authorization headers)
   })
@@ -83,7 +83,7 @@ const options = {
 };
 
 // Start the HTTPS server on the specified port
-const PORT = process.env.PORT || 5000; // Use port from environment variable or default to 5000
+const PORT = process.env.PORT || 5000; // Ensure backend uses port 5000
 https.createServer(options, app).listen(PORT, () => {
   console.log(`Server running at https://localhost:${PORT}`); // Log server start message
 });
