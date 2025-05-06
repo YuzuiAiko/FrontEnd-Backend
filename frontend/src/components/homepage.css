@@ -3,14 +3,14 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #3B1C32;
-  color: #333;
+  background-color: #ee0faf;
+  color: #ffffff;
 }
 
 .homepage-container {
   display: flex;
   flex-direction: column;
-  background-color: #ffffff;
+  background-color: #ff0000;
   height: 100vh;
 }
 
@@ -21,7 +21,7 @@ body {
   left: -250px;
   width: 250px;
   height: 100%;
-  background-color: #3B1C32;
+  background-color: #0997f5;
   color: white;
   transition: 0.3s;
   padding-top: 60px;
@@ -43,8 +43,14 @@ body {
 
 .sidebar ul li a {
   text-decoration: none;
+  transition: transform 0.3s ease, box-shadow 0.3s;
   color: white;
   display: block;
+}
+
+.sidebar ul li a.clicked {
+  transform: scale(0.95);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
 }
 
 .sidebar ul li a:hover {
@@ -77,7 +83,7 @@ header {
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
-  background-color: #3B1C32;
+  background-color: #0997f5;
   border-bottom: 1px solid #ddd;
 }
 
@@ -97,11 +103,59 @@ header {
   border-radius: 20px;
 }
 
+/* Light/Dark Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 20px;
+  margin-left: 30px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ffffff;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  left: 4px;
+  bottom: 4px;
+  background-color: #000000;
+  transition: 0.4s;
+}
+
+.switch input:checked + .slider {
+  background-color: #000000;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(14px);
+  background-color: #ffffff;
+}
+
 /* Email List */
 .email-list-container {
   flex-grow: 1;
   overflow-y: auto;
-  background-color: #f9f9f9;
+  background-color: #2aaf31;
   padding: 20px;
 }
 
@@ -109,18 +163,19 @@ header {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  background-color: #ffffff;
+  background-color: #fff;
   padding: 15px 20px;
   margin-bottom: 15px;
   border: 1px solid #ddd;
   border-radius: 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   cursor: pointer;
 }
 
 .email-item h3 {
   margin: 0;
   font-size: 16px;
+  color: #000;
   font-weight: bold;
 }
 
@@ -135,75 +190,56 @@ header {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 10px 0;
-  gap: 10px;  /* Add space between buttons */
+  gap: 10px;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  padding: 10px 0;
+  background-color: #2aaf31;
 }
 
-/* Pagination button styling */
-/* Pagination container */
-.pagination {
-  display: flex;
-  justify-content: center; /* Center-align the pagination */
-  align-items: center;
-  margin: 10px 0;
-  background-color: #3B1C32;
-  gap: 10px; /* Consistent spacing between buttons */
-  position: relative; /* Ensure it stays in place */
-}
-
-/* Pagination button styling */
 .pagination button {
-  padding: 10px 20px; /* Consistent size for buttons */
-  background-color: #A64D79;
+  padding: 5px 15px;
+  background-color: #3131a3;
   border: 5px solid #ddd;
-  color: white;
+  color: #fff;
   border-radius: 20px;
   cursor: pointer;
   font-size: 16px;
   transition: background-color 0.3s ease;
-  min-width: 50px; /* Minimum width ensures buttons don't shrink */
-  text-align: center;
+  min-width: 20px;
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-/* Active page button style */
-.pagination .active-page {
-  background-color: #1A1A1D;
-  border-color: #1A1A1D;
-}
-
-/* Hover effect for buttons */
-.pagination button:hover {
-  background-color: #1A1A1D;
-  border-color: #1A1A1D;
-}
-
-/* Disable text wrapping for buttons */
-.pagination button {
   white-space: nowrap;
 }
 
-/* Ensure pagination stays in the same place on small screens */
-@media (max-width: 768px) {
-  .pagination {
-    gap: 5px; /* Reduce spacing on smaller screens */
-  }
-
-  .pagination button {
-    padding: 8px 15px; /* Adjust button size for smaller screens */
-    font-size: 14px; /* Reduce font size for smaller screens */
-  }
+.pagination .active-page {
+  background-color: #0997f5;
+  border-color: #3131a3;
 }
 
+.pagination button:hover {
+  background-color: #0997f5;
+  border-color: #3131a3;
+}
 
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .pagination {
+    gap: 5px;
+  }
+  .pagination button {
+    padding: 1px 5%;
+    font-size: 10px;
+  }
+}
 
 /* Bottom Navigation */
 .bottom-nav {
   display: flex;
   justify-content: space-between;
-  padding: 10px 20px;
+  padding: 10px 15px;
   background-color: #A64D79;
   border-top: 1px solid #ddd;
 }
@@ -218,17 +254,12 @@ header {
   color: #333;
 }
 
-.bottom-nav button img {
-  width: 20px;
-  margin-right: 5px;
-}
-
 /* Email Detail */
 .email-detail-container {
   padding: 30px;
-  background-color: #ffffff;
+  background-color: #fff;
   border-radius: 20px;
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 10px rgba(0,0,0,0.15);
   width: 100%;
   height: 100vh;
   margin: 40px auto;
@@ -249,7 +280,7 @@ header {
 .email-detail-container h3 {
   margin: 0;
   padding: 0;
-  font-family: 'Arial', sans-serif;
+  font-family: Arial, sans-serif;
   color: #333;
 }
 
@@ -289,7 +320,7 @@ header {
   padding: 15px 25px;
   margin-top: 30px;
   background-color: #007bff;
-  color: white;
+  color: #fff;
   border: none;
   border-radius: 12px;
   font-size: 18px;
@@ -312,13 +343,6 @@ header {
   background-color: #ddd;
 }
 
-.buttons-container {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
 /* Compose Modal */
 .compose-modal {
   position: fixed;
@@ -329,18 +353,18 @@ header {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0,0,0,0.5);
   z-index: 10000;
 }
 
 .compose-form {
-  background-color: white;
+  background-color: #fff;
   padding: 20px;
   border-radius: 15px;
   width: 400px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .compose-header {
@@ -349,7 +373,7 @@ header {
 }
 
 .close-button {
-  background-color: transparent;
+  background: none;
   border: none;
   font-size: 20px;
   cursor: pointer;
@@ -369,157 +393,76 @@ header {
   height: 150px;
   resize: none;
   background-color: #f7f7f7;
-  border: 1px solid #ddd;
-  padding: 12px;
-  font-size: 14px;
   color: #333;
-  box-sizing: border-box;
 }
 
 .compose-form button {
-  background-color: #c2ffc7;
+  background-color: #360f68;
   border: none;
   padding: 10px;
+  color: #f1f1f1;
   border-radius: 10px;
   cursor: pointer;
 }
 
 .compose-form button:hover {
-  background-color: #a6f6a3;
+  background-color: #fff;
 }
 
-.reply-button {
-  margin-top: 20px;
-  
-  padding: 10px;
-  background-color: #3B1C32;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
+/* Default Light Mode */
+.homepage-container {
+  background-color: #fff;
+  color: #000;
 }
 
-.reply-button:hover {
-  background-color: #A64D79;
+.search-bar input,
+.search-bar select {
+  background-color: #f0f0f0;
+  color: #000;
 }
 
-/* Style for the back button */
-.back-button {
-  margin-top: 20px;
-  padding: 10px;
-  background-color: #3B1C32;  /* Background color */
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  color: white;  /* Make text white */
-}
-
-/* Hover effect for the back button */
-.back-button:hover {
-  background-color: #A64D79;  /* Change background on hover */
-  color: white;  /* Ensure text stays white on hover */
-}
-
-.email-body-box {
-  padding: 12px;
-  margin-top: 10px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  background-color: #f7f7f7;
-  font-size: 14px;
-  color: #333;
-  white-space: pre-wrap;
-  height: 150px;
-  overflow-y: auto;
-  resize: none;
-  box-sizing: border-box;
-}
-/* Sidebar Navigation */
-.navigation-list {
-  padding: 0;
-  margin: 0;
-  list-style-type: none;
-}
-
-.navigation-list li {
-  margin: 10px 0;
-}
-
-.navigation-list li a {
-  display: block;
-  padding: 15px 20px;
-  color: white;
-  text-decoration: none;
-  font-size: 16px;
-  font-weight: bold;
-  border-radius: 10px;
-  transition: background-color 0.3s, transform 0.3s;
-}
-
-.navigation-list li a:hover {
-  background-color: #007bff;
-  transform: scale(1.05);
-}
-
-.navigation-list .active a {
-  background-color: #0056b3;
+/* ── DARK MODE OVERRIDES ── */
+.homepage-container.dark-mode {
+  background-color: #121212;
   color: #fff;
 }
-/* Email Item Hover Effect */
-.email-item:hover {
-  transform: scale(1.01); /* Slight zoom out */
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+
+/* Sidebar & Header in deep red */
+.homepage-container.dark-mode .sidebar,
+.homepage-container.dark-mode header {
+  background-color: #B00020;
+  border-color: #550010;
 }
 
-/* Back and Reply Button at the Top */
-.email-detail-container {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 20px;
-  position: relative;
+/* Hamburger icon */
+.homepage-container.dark-mode .hamburger-icon {
+  color: #fff;
 }
 
-.buttons-container {
-  position: sticky;
-  top: 0; /* Ensures it stays at the top */
-  display: flex;
-  gap: 10px;
-  background-color: #ffffff; /* Matches container */
-  z-index: 100;
-  padding: 10px 0;
-}
-/* Style for the top section */
-.Subject_Top {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 20px;
-
-  border-radius: 20px;
-  box-shadow: 0 4px 5px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
-  margin-bottom: 20px;
-  width: 97%;
+/* Inputs */
+.homepage-container.dark-mode .search-bar input,
+.homepage-container.dark-mode .search-bar select {
+  background-color: #333;
+  color:#555;
+  border-color: #555;
 }
 
-/* Style for each text block (Sender, Subject, Classification) */
-.Sender1, .Subject1, .Classification1 {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 10px;
+/* Email list container now deep red */
+.homepage-container.dark-mode .email-list-container {
+  background-color: #FF8F00;
 }
 
-/* Specific styles for each category */
-.Sender1 {
-  color: #333; /* Dark color for Sender */
+/* Pagination bar in warm orange */
+.homepage-container.dark-mode .pagination {
+  background-color: #FF8F00;
 }
 
-.Subject1 {
-  color: #0078D4; /* Blue color for Subject */
+/* Pagination buttons dark red + orange hover */
+.homepage-container.dark-mode .pagination button {
+  background-color: #C62828;
+  border-color: #E64A19;
+  color: #fff;
 }
-
-.Classification1 {
-  color: #E94E77; /* Red color for Classification */
+.homepage-container.dark-mode .pagination button:hover {
+  background-color: #FF8F00;
 }
-
-
