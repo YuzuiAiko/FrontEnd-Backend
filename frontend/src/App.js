@@ -1,3 +1,4 @@
+// filepath: frontend/src/App.js
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"; // React Router for navigation
 import { gapi } from "gapi-script"; // Google API client for Gmail authentication
@@ -5,6 +6,7 @@ import axios from "axios"; // HTTP client for backend communication
 import "./App.css"; // Import application styles
 import GmailLogo from "./assets/Gmail_logo.png"; // Gmail logo for the UI
 import GroupLogo from "./assets/F (1).png"; // Application group logo
+import DefaultLogo from "./assets/imfrisiv.png"; // Default logo
 import Homepage from "./components/Homepage"; // Homepage component
 
 function App() {
@@ -59,7 +61,12 @@ function App() {
     }
   };
 
-   return (
+  // Determine logo and app name based on environment variable
+  const useGroupLogo = process.env.REACT_APP_USE_GROUP_LOGO === "true";
+  const logo = useGroupLogo ? GroupLogo : DefaultLogo;
+  const appName = useGroupLogo ? "SiFri Mail" : "ImfrisivMail";
+
+  return (
     <Router>
       <Routes>
         <Route
@@ -67,8 +74,8 @@ function App() {
           element={
             <div className="container">
               <div className="form-section">
-                <img src={GroupLogo} alt="Group Logo" className="group-logo" />
-                <h1 className="title">SiFri Mail</h1>
+                <img src={logo} alt="App Logo" className="group-logo" />
+                <h1 className="title">{appName}</h1>`
                 <p className="subtitle">Welcome</p>
                 <div className="form-group">
                   <label htmlFor="email" className="label">
