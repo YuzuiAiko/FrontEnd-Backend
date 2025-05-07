@@ -79,6 +79,17 @@ app.post("/api/login", (req, res) => {
   }
 });
 
+app.post("/api/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Error destroying session:", err);
+      return res.status(500).json({ message: "Failed to log out" });
+    }
+    res.clearCookie("connect.sid"); // Clear the session cookie
+    res.status(200).json({ message: "Logged out successfully" });
+  });
+});
+
 // Use Gmail routes for handling authentication and email operations
 app.use("/auth/gmail", gmailRoutes);
 

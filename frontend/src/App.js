@@ -75,7 +75,7 @@ function App() {
             <div className="container">
               <div className="form-section">
                 <img src={logo} alt="App Logo" className="group-logo" />
-                <h1 className="title">{appName}</h1>`
+                <h1 className="title">{appName}</h1>
                 <p className="subtitle">Welcome</p>
                 <div className="form-group">
                   <label htmlFor="email" className="label">

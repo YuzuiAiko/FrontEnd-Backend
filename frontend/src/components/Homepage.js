@@ -157,6 +157,19 @@ const Homepage = ({ userEmail }) => {
       minute: "2-digit",
     });
 
+  const handleLogout = async () => {
+    try {
+      await fetch("https://localhost:5000/api/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      window.location.href = "/"; // Redirect to login page
+    } catch (err) {
+      console.error("Logout failed:", err);
+      alert("Failed to log out. Please try again.");
+    }
+  };
+
   if (loading) return <p>Loading emails...</p>;
   if (error) return <p>{error}</p>;
 
@@ -174,6 +187,9 @@ const Homepage = ({ userEmail }) => {
           ))}
           <li>
             <a onClick={() => handleComposeToggle("new")}>Compose</a>
+          </li>
+          <li>
+            <a onClick={handleLogout}>Logout</a> {/* Logout button */}
           </li>
         </ul>
       </div>
