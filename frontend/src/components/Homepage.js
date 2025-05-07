@@ -196,16 +196,26 @@ const Homepage = ({ userEmail }) => {
 
       {/* Main Content */}
       <div className="main-content">
-        <button
-          className="hamburger-icon"
-          onClick={() => setSidebarVisible((v) => !v)}
-        >
-          &#9776;
-        </button>
+        <header>
+          <div>
+            <button
+              className="hamburger-icon"
+              onClick={() => setSidebarVisible((v) => !v)}
+            >
+              &#9776;
+            </button>
+            <img 
+              src="/assets/images/imfrisiv.png" 
+              alt="Logo" 
+              className="top-bar-logo" 
+            />
+            <h1 className="top-bar-title">ImfrisivMail</h1>
+          </div>
+        </header>
 
         {!selectedEmail ? (
           <>
-            <header>
+            <header class="second-header-bar">
               <div className="search-bar">
                 <input
                   type="text"
