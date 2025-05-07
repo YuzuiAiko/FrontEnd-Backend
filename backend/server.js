@@ -10,10 +10,21 @@ const app = express(); // Create an Express application instance
 
 app.use(bodyParser.json()); // Use body-parser to parse JSON request bodies
 
-// Enable CORS to allow cross-origin requests from the specified origin
+const allowedOrigins = [
+  "https://localhost:3000",
+  "https://localhost:5002",
+  "https://localhost:5000",
+];
+
 app.use(
   cors({
-    origin: "https://localhost:3000", // Ensure this matches the frontend's HTTPS URL
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true); // Allow the request
+      } else {
+        callback(new Error("Not allowed by CORS")); // Block the request
+      }
+    },
     methods: ["GET", "POST"], // Allow only GET and POST methods
     credentials: true, // Enable sending credentials (e.g., cookies, authorization headers)
   })
