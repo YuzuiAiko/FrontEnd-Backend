@@ -24,7 +24,10 @@ body, html {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #3b1c32;
+  background-image: url('./assets/images/login-background-laptopwoman.jpg'); /* Add the background image */
+  background-size: cover; /* Ensure the image covers the entire container */
+  background-position: center; /* Center the image */
+  background-repeat: no-repeat; /* Prevent the image from repeating */
   padding: 20px;
   box-sizing: border-box;
   width: 100%;

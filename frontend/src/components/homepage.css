@@ -83,8 +83,25 @@ header {
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
-  background-color: #0997f5;
   border-bottom: 1px solid #ddd;
+}
+
+.second-header-bar {
+  background-color: #0997f5;
+}
+
+.top-bar-title {
+  display: inline;
+  font-family: "Georgia", "Cambria", sans-serif;
+  font-weight: bolder;
+}
+
+.top-bar-logo {
+  height: 3em;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+  vertical-align: middle;
+  margin-top: -1em;
 }
 
 .search-bar input {

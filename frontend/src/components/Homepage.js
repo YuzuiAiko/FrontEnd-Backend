@@ -157,6 +157,19 @@ const Homepage = ({ userEmail }) => {
       minute: "2-digit",
     });
 
+  const handleLogout = async () => {
+    try {
+      await fetch("https://localhost:5000/api/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      window.location.href = "/"; // Redirect to login page
+    } catch (err) {
+      console.error("Logout failed:", err);
+      alert("Failed to log out. Please try again.");
+    }
+  };
+
   if (loading) return <p>Loading emails...</p>;
   if (error) return <p>{error}</p>;
 
@@ -175,21 +188,34 @@ const Homepage = ({ userEmail }) => {
           <li>
             <a onClick={() => handleComposeToggle("new")}>Compose</a>
           </li>
+          <li>
+            <a onClick={handleLogout}>Logout</a> {/* Logout button */}
+          </li>
         </ul>
       </div>
 
       {/* Main Content */}
       <div className="main-content">
-        <button
-          className="hamburger-icon"
-          onClick={() => setSidebarVisible((v) => !v)}
-        >
-          &#9776;
-        </button>
+        <header>
+          <div>
+            <button
+              className="hamburger-icon"
+              onClick={() => setSidebarVisible((v) => !v)}
+            >
+              &#9776;
+            </button>
+            <img 
+              src="/assets/images/imfrisiv.png" 
+              alt="Logo" 
+              className="top-bar-logo" 
+            />
+            <h1 className="top-bar-title">ImfrisivMail</h1>
+          </div>
+        </header>
 
         {!selectedEmail ? (
           <>
-            <header>
+            <header class="second-header-bar">
               <div className="search-bar">
                 <input
                   type="text"
