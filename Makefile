@@ -1,0 +1,31 @@
+# Makefile for running the SVM Model, Backend, and Frontend services
+
+.PHONY: all svm backend frontend run stop
+
+# Default target to run all services
+all: run
+
+# Target to start the SVM Model
+svm:
+	@echo "Starting SVM Model..."
+	python backend/classifier/svm_model.py
+
+# Target to start the Backend Server
+backend:
+	@echo "Starting Backend Server..."
+	node backend/server.js
+
+# Target to start the Frontend
+frontend:
+	@echo "Starting Frontend..."
+	cd frontend && npm start
+
+# Target to run all services
+run: svm backend frontend
+
+# Target to stop all running processes
+stop:
+	@echo "Stopping all processes..."
+	pkill -f "python backend/classifier/svm_model.py" || true
+	pkill -f "node backend/server.js" || true
+	pkill -f "npm start" || true
