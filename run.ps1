@@ -59,4 +59,12 @@ if ($Service -eq "frontend" -or $Service -eq "all") {
     Start-ProcessWithWindow -Path "npm" -Arguments "start" -WorkingDirectory "./frontend"
 }
 
+# Add a new service command to run all three servers without installing dependencies
+if ($Service -eq "run" -or $Service -eq "all") {
+    Write-Host "Starting all services (SVM Model, Backend, Frontend)..."
+    Start-ProcessWithWindow -Path "python" -Arguments "svm_model.py" -WorkingDirectory "./backend/classifier"
+    Start-ProcessWithWindow -Path "node" -Arguments "server.js" -WorkingDirectory "./backend"
+    Start-ProcessWithWindow -Path "npm" -Arguments "start" -WorkingDirectory "./frontend"
+}
+
 Write-Host "All processes have been started successfully!"
