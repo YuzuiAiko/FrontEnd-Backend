@@ -68,6 +68,38 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
 
 4. Explore features like email categorization, sending emails, and more.
 
+## Alternate Usage with tmux
+
+For users who prefer using `tmux` to manage multiple terminal sessions, a `start_services.sh` script is provided. This script launches all services (SVM Model, Backend, Frontend) in separate `tmux` panes for better process management.
+
+### Steps to Use the tmux Script
+
+1. Ensure `tmux` is installed on your system. You can install it using your package manager:
+   ```bash
+   sudo apt install tmux  # For Debian/Ubuntu
+   sudo dnf install tmux  # For Fedora
+   brew install tmux      # For macOS
+   ```
+
+2. Run the `start_services.sh` script:
+   ```bash
+   ./start_services.sh
+   ```
+
+3. The script will:
+   - Create a new `tmux` session named `services`.
+   - Start the SVM Model, Backend, and Frontend in separate panes.
+   - Attach to the `tmux` session for monitoring.
+
+4. To detach from the `tmux` session, press `Ctrl+B` followed by `D`.
+
+5. To reattach to the session later, use:
+   ```bash
+   tmux attach-session -t services
+   ```
+
+This method is particularly useful for Linux CLI environments or when running the application on a remote server.
+
 ## Notes
 
 - Ensure you have Python 3.8+ and Node.js installed.
