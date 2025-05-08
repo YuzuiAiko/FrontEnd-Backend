@@ -20,8 +20,13 @@ frontend:
 	@echo "Starting Frontend..."
 	cd frontend && npm start
 
-# Target to run all services
-run: svm backend frontend
+# Target to run all services concurrently in a cross-platform way
+run:
+	@echo "Starting all services (SVM Model, Backend, Frontend)..."
+	$(MAKE) svm & \
+	$(MAKE) backend & \
+	$(MAKE) frontend & \
+	wait
 
 # Target to stop all running processes
 stop:
