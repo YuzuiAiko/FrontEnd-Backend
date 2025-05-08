@@ -1,6 +1,6 @@
 # Makefile for running the SVM Model, Backend, and Frontend services
 
-.PHONY: all svm backend frontend run stop
+.PHONY: all svm backend frontend run stop install
 
 # Default target to run all services
 all: run
@@ -29,3 +29,12 @@ stop:
 	pkill -f "python backend/classifier/svm_model.py" || true
 	pkill -f "node backend/server.js" || true
 	pkill -f "npm start" || true
+
+# Target to install dependencies for all services
+install:
+	@echo "Installing Python dependencies..."
+	pip install -r backend/classifier/requirements.txt
+	@echo "Installing Node.js dependencies for backend..."
+	cd backend && npm install
+	@echo "Installing Node.js dependencies for frontend..."
+	cd frontend && npm install
