@@ -37,10 +37,10 @@ if ($Service -eq "install" -or $Service -eq "all") {
     Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend/classifier'; pip install -r requirements.txt"
 
     Write-Host "Installing Node.js dependencies for backend..."
-    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend'; npm install --verbose"
+    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend'; npm install --legacy-peer-deps"
 
     Write-Host "Installing Node.js dependencies for frontend..."
-    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './frontend'; npm install --verbose"
+    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './frontend'; npm install --legacy-peer-deps"
 }
 
 # Start services based on the parameter
