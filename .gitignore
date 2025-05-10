@@ -1,12 +1,36 @@
+# Node.js dependencies
 node_modules
+
+# Environment files
 backend/.env
 frontend/.env
-
-# Ignore GitHub-related files
-.github
-.idea
-.vscode
-*.log
 *.env.local
 *.env.development
 *.env.production
+
+# Python-related files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+*.whl
+
+# GitHub-related files
+.github
+
+# IDE and editor files
+.idea
+.vscode
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# SSL certificates
+ssl/
+
+# Other
+.DS_Store
+Thumbs.db
