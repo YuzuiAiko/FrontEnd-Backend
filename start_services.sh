@@ -7,7 +7,7 @@ tmux new-session -d -s services "python backend/classifier/svm_model.py"
 tmux split-window -h "node backend/server.js"
 
 # Split the window vertically and start the frontend
-tmux split-window -v "cd frontend && npm start"
+tmux split-window -v "cd frontend && npm install --legacy-peer-deps && npm start"
 
 # Select the first pane
 tmux select-pane -t 0
