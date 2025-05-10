@@ -1,3 +1,12 @@
 node_modules
 backend/.env
 frontend/.env
+
+# Ignore GitHub-related files
+.github
+.idea
+.vscode
+*.log
+*.env.local
+*.env.development
+*.env.production
