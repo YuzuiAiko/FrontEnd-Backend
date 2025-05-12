@@ -34,13 +34,13 @@ function Start-ProcessWithWindow {
 # Install dependencies for Python and Node.js
 if ($Service -eq "install" -or $Service -eq "all") {
     Write-Host "Installing Python dependencies..."
-    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend/classifier'; pip install -r requirements.txt"
+    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend/classifier'; pip install -r requirements.txt --verbose"
 
     Write-Host "Installing Node.js dependencies for backend..."
-    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend'; npm install --legacy-peer-deps"
+    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend'; npm install --verbose --legacy-peer-deps"
 
     Write-Host "Installing Node.js dependencies for frontend..."
-    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './frontend'; npm install --legacy-peer-deps"
+    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './frontend'; npm install --verbose --legacy-peer-deps"
 }
 
 # Start services based on the parameter
@@ -60,11 +60,11 @@ if ($Service -eq "frontend" -or $Service -eq "all") {
 }
 
 # Add a new service command to run all three servers without installing dependencies
-if ($Service -eq "run" -or $Service -eq "all") {
+if ($Service -eq "run") {
     Write-Host "Starting all services (SVM Model, Backend, Frontend)..."
-    Start-ProcessWithWindow -Path "python" -Arguments "svm_model.py" -WorkingDirectory "./backend/classifier"
-    Start-ProcessWithWindow -Path "node" -Arguments "server.js" -WorkingDirectory "./backend"
-    Start-ProcessWithWindow -Path "npm" -Arguments "start" -WorkingDirectory "./frontend"
+    & $PSCommandPath -Service svm
+    & $PSCommandPath -Service backend
+    & $PSCommandPath -Service frontend
 }
 
 Write-Host "All processes have been started successfully!"
