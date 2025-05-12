@@ -159,6 +159,37 @@ router.post("/send", async (req, res) => {
   }
 });
 
+// Route to revoke the OAuth2 token and log out the user
+router.post("/logout", async (req, res) => {
+  try {
+    if (!req.session.tokens || !req.session.tokens.access_token) {
+      return res.status(400).json({ error: "No active session or token found." });
+    }
+
+    // Revoke the OAuth2 token
+    const revokeUrl = `https://oauth2.googleapis.com/revoke?token=${req.session.tokens.access_token}`;
+    const revokeResponse = await axios.post(revokeUrl);
+
+    if (revokeResponse.status === 200) {
+      // Destroy the session
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Error destroying session:", err);
+          return res.status(500).json({ error: "Failed to log out." });
+        }
+        res.clearCookie("connect.sid"); // Clear the session cookie
+        return res.status(200).json({ message: "Logged out successfully." });
+      });
+    } else {
+      console.error("Failed to revoke token:", revokeResponse.data);
+      return res.status(500).json({ error: "Failed to revoke token." });
+    }
+  } catch (error) {
+    console.error("Error during logout:", error);
+    return res.status(500).json({ error: "An error occurred during logout." });
+  }
+});
+
 // Create a raw email message encoded in base64
 function createRawMessage(to, subject, body) {
   const messageParts = [
