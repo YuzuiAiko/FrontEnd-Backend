@@ -2,15 +2,53 @@ import express from "express"; // Import the express module
 import { google } from "googleapis"; // Import the googleapis module for Google API integration
 import axios from "axios"; // Import axios for making HTTP requests
 import { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REDIRECT_URI } from '../config.js';
+import { emailProviders } from "../config/emailProviders.js";
 
 const router = express.Router(); // Create a new router instance for defining Gmail routes
 
-// Initialize the OAuth2 client with credentials for authentication
-const oauth2Client = new google.auth.OAuth2(
-  GMAIL_CLIENT_ID,
-  GMAIL_CLIENT_SECRET,
-  GMAIL_REDIRECT_URI
-);
+// Middleware to dynamically configure OAuth2 client based on provider
+const configureProvider = (provider) => {
+  const config = emailProviders[provider];
+  if (!config) {
+    throw new Error(`Unsupported provider: ${provider}`);
+  }
+  return new google.auth.OAuth2(
+    config.clientId,
+    config.clientSecret,
+    config.redirectUri
+  );
+};
+
+// Route to start the OAuth2 login process for a specific provider
+router.get("/login/:provider", (req, res) => {
+  try {
+    const provider = req.params.provider;
+    const oauth2Client = configureProvider(provider);
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: emailProviders[provider].scopes,
+    });
+    res.redirect(authUrl);
+  } catch (error) {
+    console.error("Error configuring provider:", error);
+    res.status(400).send("Invalid provider");
+  }
+});
+
+// Callback route to handle the response from the provider after login
+router.get("/callback/:provider", async (req, res) => {
+  try {
+    const provider = req.params.provider;
+    const oauth2Client = configureProvider(provider);
+    const { tokens } = await oauth2Client.getToken(req.query.code);
+    oauth2Client.setCredentials(tokens);
+    req.session.tokens = tokens;
+    res.redirect("/"); // Redirect to the homepage after successful login
+  } catch (error) {
+    console.error("Error during callback:", error);
+    res.status(500).send("Authentication failed");
+  }
+});
 
 // Route to start the Google OAuth2 login process
 router.get("/login", (req, res) => {
