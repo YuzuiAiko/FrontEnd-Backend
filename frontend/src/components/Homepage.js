@@ -159,10 +159,15 @@ const Homepage = ({ userEmail }) => {
 
   const handleLogout = async () => {
     try {
-      await fetch("https://localhost:5000/api/logout", {
+      const response = await fetch("https://localhost:5000/auth/gmail/logout", {
         method: "POST",
         credentials: "include",
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to log out");
+      }
+
       window.location.href = "/"; // Redirect to login page
     } catch (err) {
       console.error("Logout failed:", err);
