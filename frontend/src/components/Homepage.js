@@ -75,6 +75,8 @@ const Homepage = ({ userEmail }) => {
           takeLeft = l[i].sender.localeCompare(r[j].sender) < 0;
         } else if (sortBy === "subject") {
           takeLeft = l[i].subject.localeCompare(r[j].subject) < 0;
+        } else if (sortBy === "classification") {
+          takeLeft = l[i].classification[0]?.localeCompare(r[j].classification[0] || "") < 0;
         } else {
           takeLeft = new Date(l[i].date) > new Date(r[j].date);
         }
@@ -178,7 +180,7 @@ const Homepage = ({ userEmail }) => {
       {/* Sidebar */}
       <div className={`sidebar ${sidebarVisible ? "visible" : ""}`}>
         <ul>
-          {["Inbox", "Important", "Drafts", "Spam"].map((cat) => (
+          {["Inbox", "Important", "Drafts", "Spam", "Phishing"].map((cat) => (
             <li key={cat}>
               <a onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}>
                 {cat}
@@ -215,7 +217,7 @@ const Homepage = ({ userEmail }) => {
 
         {!selectedEmail ? (
           <>
-            <header class="second-header-bar">
+            <header className="second-header-bar">
               <div className="search-bar">
                 <input
                   type="text"
@@ -230,6 +232,7 @@ const Homepage = ({ userEmail }) => {
                   <option value="date">Sort by Date</option>
                   <option value="sender">Sort by Sender</option>
                   <option value="subject">Sort by Subject</option>
+                  <option value="classification">Sort by Classification</option>
                 </select>
                 {/* Light / Dark Mode Switch */}
                 <label className="switch">
@@ -253,7 +256,8 @@ const Homepage = ({ userEmail }) => {
                 >
                   <h3>{email.subject}</h3>
                   <p>From: {email.sender}</p>
-                  <p>Classification: {email.classification.join(", ")}</p>
+                  <p><b>Classification: {email.classification.join(", ")}</b></p>
+                  <p><b>Phishing: {email.classification.join(", ")}</b></p>
                   <p className="date-time">
                     Date: {formatDateTime(email.date)}
                   </p>
@@ -289,6 +293,7 @@ const Homepage = ({ userEmail }) => {
             <h2>Sender: {selectedEmail.sender}</h2>
             <h3>Subject: {selectedEmail.subject}</h3>
             <p>Classification: {selectedEmail.classification.join(", ")}</p>
+            <p>Phishing: {selectedEmail.classification.join(", ")}</p>
             <p className="date-time">
               Date: {formatDateTime(selectedEmail.date)}
             </p>
