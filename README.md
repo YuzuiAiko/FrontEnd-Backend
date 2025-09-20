@@ -43,8 +43,33 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
    ```
 
 4. Set up environment variables:
-   - Create `.env` files in both the `backend` and `frontend` directories.
-   - Add the required environment variables as specified in the project documentation.
+   - Create `.env` files in both the `backend` and `frontend` directories, or use the provided `.env.example` as a template.
+   - Add the required environment variables as specified below.
+
+   **Dynamic Redirect Support:**
+   - The backend supports dynamic OAuth2 redirects using the `FRONTEND_REDIRECT_URL` variable.
+   - When the frontend initiates Gmail OAuth, it sends its current URL/port in the `redirect` query parameter.
+   - The backend will redirect users to this URL after authentication. If not provided, it falls back to `FRONTEND_REDIRECT_URL` from `.env`.
+   - The route to redirect to after authentication defaults to `/home`, but can be customized with the `FRONTEND_POSTAUTH_ROUTE` variable in `.env`.
+
+   **Example .env variables:**
+   ```env
+   PORT=5002
+   GMAIL_CLIENT_ID=your-google-client-id
+   GMAIL_CLIENT_SECRET=your-google-client-secret
+   GMAIL_REDIRECT_URI=https://localhost:5002/auth/gmail/callback
+   OUTLOOK_CLIENT_ID=your-outlook-client-id
+   OUTLOOK_CLIENT_SECRET=your-outlook-client-secret
+   OUTLOOK_TENANT_ID=your-outlook-tenant-id
+   OUTLOOK_REDIRECT_URI=https://localhost:5002/auth/outlook/callback
+   SSL_KEY_PATH=ssl/localhost-key.pem
+   SSL_CERT_PATH=ssl/localhost-cert.pem
+   REACT_APP_BACKEND_URL=https://localhost:5002
+   FRONTEND_REDIRECT_URL=http://localhost:5003/
+   FRONTEND_POSTAUTH_ROUTE=/home
+   # FRONTEND_REDIRECT_URL is used as a fallback for dynamic OAuth2 redirects if not provided by the frontend.
+   # FRONTEND_POSTAUTH_ROUTE sets the route to redirect to after authentication (default: /home)
+   ```
 
 5. Train the email classifier (optional):
    ```bash
