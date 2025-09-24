@@ -130,3 +130,36 @@ This method is particularly useful for Linux CLI environments or when running th
 - Ensure you have Python 3.8+ and Node.js installed.
 - Use `npm start` in the `frontend` directory to run the frontend separately.
 - Use `node server.js` in the `backend` directory to run the backend separately.
+
+## CORS configuration
+
+The backend enforces CORS to only allow requests from known frontend origins and to support cross-site cookies for session auth.
+
+- Where it lives: `backend/server.js` in the `allowedOrigins` array and the `cors(...)` middleware.
+- Default allowed dev origins (both HTTP and HTTPS):
+  - `localhost` and `127.0.0.1` on ports 3000, 5000, 5002, 5003, 5173
+- Preflight: `OPTIONS` is enabled. Common headers are allowed and `credentials` is set to `true`.
+
+How to add a new origin
+1) Determine your exact frontend origin (scheme + host + port), for example:
+   - `https://localhost:5003`
+   - `https://mail.mycorp.internal`
+2) Add that exact string to `allowedOrigins` in `backend/server.js`.
+3) Restart the backend.
+
+Example: internal/corporate deployments
+- Add explicit entries for each UI hostname:
+  - `https://mail.mycorp.internal`
+  - `https://intranet.mycorp.local`
+- If you serve multiple subdomains, add each explicitly. Wildcards are not used in the current `origin` function. To support patterns, you can switch to a regex check in the CORS `origin` callback.
+
+Cookies, HTTPS, and credentials
+- The session cookie is configured with `secure: true` and `sameSite: 'None'`, which requires the frontend to be served over HTTPS for cookies to be set and sent.
+- All frontend requests that need cookies must send credentials:
+  - `fetch(url, { credentials: 'include' })`
+  - `axios.post(url, data, { withCredentials: true })`
+- Ensure `REACT_APP_BACKEND_URL` points to the HTTPS backend origin you’re running (e.g., `https://localhost:5002`).
+
+Debugging tips
+- In the browser DevTools → Network tab, open a failing request and check the Request Headers → `Origin`. It must exactly match an entry in `allowedOrigins`.
+- Verify the preflight `OPTIONS` response includes `Access-Control-Allow-Origin` and `Access-Control-Allow-Credentials: true`.
