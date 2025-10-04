@@ -1,4 +1,6 @@
 // filepath: frontend/src/App.js
+// Set default frontend port to 5003
+process.env.PORT = process.env.PORT || "5003";
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"; // React Router for navigation
 import { gapi } from "gapi-script"; // Google API client for Gmail authentication
