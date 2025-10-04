@@ -13,93 +13,88 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 // Route to start the Google OAuth2 login process
+// Accept ?redirect=... as a query param, fallback to .env FRONTEND_REDIRECT_URL
+import { FRONTEND_REDIRECT_URL } from '../config.js';
 router.get("/login", (req, res) => {
+  const redirectUrl = req.query.redirect || FRONTEND_REDIRECT_URL;
   const authUrl = oauth2Client.generateAuthUrl({
-    access_type: "offline", // Request a refresh token for long-term use
+    access_type: "offline",
     scope: [
-      "https://www.googleapis.com/auth/gmail.readonly", // Read-only access to Gmail
-      "https://www.googleapis.com/auth/gmail.modify", // Modify access to Gmail
-      "https://www.googleapis.com/auth/gmail.compose", // Compose email access
-      "https://www.googleapis.com/auth/gmail.labels", // Access to Gmail labels
+      "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/gmail.modify",
+      "https://www.googleapis.com/auth/gmail.compose",
+      "https://www.googleapis.com/auth/gmail.labels",
     ],
+    state: redirectUrl // Pass frontend redirect target in state
   });
-  res.redirect(authUrl); // Redirect user to the Google OAuth2 login page
+  res.redirect(authUrl);
 });
 
 // Callback route to handle the response from Google after login
 router.get("/callback", async (req, res) => {
   try {
-    const { tokens } = await oauth2Client.getToken(req.query.code); // Exchange authorization code for tokens
-    oauth2Client.setCredentials(tokens); // Set the OAuth2 client credentials
-    req.session.tokens = tokens; // Save tokens in the session
+    const { tokens } = await oauth2Client.getToken(req.query.code);
+    oauth2Client.setCredentials(tokens);
+    req.session.tokens = tokens;
+    console.log("OAuth2 tokens:", tokens);
+    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
-    console.log("OAuth2 tokens:", tokens); // Log tokens for debugging
-
-    const gmail = google.gmail({ version: "v1", auth: oauth2Client }); // Create a Gmail API client instance
-
-    // Define labels to categorize emails
+    // Move all email fetching/classification logic inside the try block
     const labels = ["INBOX", "IMPORTANT", "SPAM", "DRAFT"];
-    const messages = []; // Store email data
-    const emailBodies = []; // Store email bodies for classification
-
-    // Fetch and process emails for each label
+    const messages = [];
+    const emailBodies = [];
     for (const label of labels) {
       const response = await gmail.users.messages.list({
-        userId: "me", // 'me' refers to the authenticated user
-        maxResults: 99, // Limit the number of emails fetched
-        labelIds: [label], // Filter emails by label
+        userId: "me",
+        maxResults: 99,
+        labelIds: [label],
       });
-
-      console.log(`Fetched messages for label ${label}:`, response.data); // Log fetched messages
-
+      console.log(`Fetched messages for label ${label}:`, response.data);
       if (response.data.messages) {
-        const messageIds = response.data.messages.map((msg) => msg.id); // Extract message IDs
-
-        // Retrieve details for each email
+        const messageIds = response.data.messages.map((msg) => msg.id);
         for (const messageId of messageIds) {
           const messageDetails = await gmail.users.messages.get({
             userId: "me",
             id: messageId,
           });
-
-          console.log("Message details:", messageDetails.data); // Log message details
-
-          // Map Gmail labels to custom labels
+          console.log("Message details:", messageDetails.data);
           const customLabels = mapGmailLabels(messageDetails.data.labelIds);
-
-          // Extract email details
           const emailData = {
-            sender: extractEmailSender(getEmailHeader(messageDetails.data.payload.headers, "From")), // Extract sender
-            subject: getEmailHeader(messageDetails.data.payload.headers, "Subject"), // Extract subject
-            body: getEmailBody(messageDetails.data.payload), // Extract email body
-            date: new Date(parseInt(messageDetails.data.internalDate)).toLocaleString(), // Convert date to readable format
-            labels: customLabels, // Apply custom labels
+            sender: extractEmailSender(getEmailHeader(messageDetails.data.payload.headers, "From")),
+            subject: getEmailHeader(messageDetails.data.payload.headers, "Subject"),
+            body: getEmailBody(messageDetails.data.payload),
+            date: new Date(parseInt(messageDetails.data.internalDate)).toLocaleString(),
+            labels: customLabels,
           };
-          messages.push(emailData); // Add email details to messages array
-          emailBodies.push(emailData.body); // Add email body for classification
+          messages.push(emailData);
+          emailBodies.push(emailData.body);
         }
       }
     }
-
     console.log("Email Bodies to Classify: ", emailBodies);
-
-    // Call a separate classification service to classify email content
+    // Call classifier
     const classificationResponse = await axios.post("http://localhost:5001/classify", {
-      emails: emailBodies, // Send email bodies for classification
+      emails: emailBodies,
     });
-
-    const classifications = classificationResponse.data.predictions; // Get classification results
+    const classifications = classificationResponse.data.predictions;
     messages.forEach((msg, index) => {
-      msg.classification = classifications[index]; // Attach classifications to email data
+      msg.classification = classifications[index];
     });
-
-    req.session.emails = messages; // Store processed emails in the session
+    req.session.emails = messages;
     console.log("Emails stored in session:", req.session.emails);
 
-    return res.redirect("https://localhost:5002/home"); // Redirect to the correct frontend URL
+    // Redirect to frontend, default to /home unless overridden
+    const frontendBase = req.query.state || FRONTEND_REDIRECT_URL || '/';
+    const postAuthRoute = process.env.FRONTEND_POSTAUTH_ROUTE || '/home';
+    let finalRedirect = frontendBase;
+    // Only append if not already present
+    if (!finalRedirect.endsWith(postAuthRoute)) {
+      finalRedirect = finalRedirect.replace(/\/$/, '') + postAuthRoute;
+    }
+    return res.redirect(finalRedirect);
   } catch (error) {
-    console.error("Error in Gmail callback:", error); // Log detailed error
-    res.status(500).json({ error: "Failed to fetch Gmail emails." }); // Respond with an error
+    console.error("Error in Gmail callback:", error);
+    res.status(500).json({ error: "Failed to fetch Gmail emails." });
   }
 });
 

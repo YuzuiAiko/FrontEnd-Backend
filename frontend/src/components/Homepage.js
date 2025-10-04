@@ -3,6 +3,7 @@ import DOMPurify from "dompurify"; // To sanitize HTML and prevent XSS attacks
 import "./homepage.css"; // Importing styles for the component
 
 const Homepage = ({ userEmail }) => {
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
   // State hooks for managing various aspects of the component
   const [emails, setEmails] = useState([]); // Stores the fetched emails
   const [loading, setLoading] = useState(true); // Tracks loading state
@@ -26,7 +27,7 @@ const Homepage = ({ userEmail }) => {
 
   // Fetch emails from the server
   const fetchEmails = useCallback(() => {
-    fetch("https://localhost:5000/auth/gmail/emails", {
+  fetch(`${backendUrl}/auth/gmail/emails`, {
       method: "GET",
       credentials: "include",
     })
@@ -128,7 +129,7 @@ const Homepage = ({ userEmail }) => {
   // Send email
   const handleSendEmail = async () => {
     try {
-      const res = await fetch("https://localhost:5000/auth/gmail/send", {
+  const res = await fetch(`${backendUrl}/auth/gmail/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -159,7 +160,7 @@ const Homepage = ({ userEmail }) => {
 
   const handleLogout = async () => {
     try {
-      await fetch("https://localhost:5000/api/logout", {
+  await fetch(`${backendUrl}/api/logout`, {
         method: "POST",
         credentials: "include",
       });

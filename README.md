@@ -43,8 +43,33 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
    ```
 
 4. Set up environment variables:
-   - Create `.env` files in both the `backend` and `frontend` directories.
-   - Add the required environment variables as specified in the project documentation.
+   - Create `.env` files in both the `backend` and `frontend` directories, or use the provided `.env.example` as a template.
+   - Add the required environment variables as specified below.
+
+   **Dynamic Redirect Support:**
+   - The backend supports dynamic OAuth2 redirects using the `FRONTEND_REDIRECT_URL` variable.
+   - When the frontend initiates Gmail OAuth, it sends its current URL/port in the `redirect` query parameter.
+   - The backend will redirect users to this URL after authentication. If not provided, it falls back to `FRONTEND_REDIRECT_URL` from `.env`.
+   - The route to redirect to after authentication defaults to `/home`, but can be customized with the `FRONTEND_POSTAUTH_ROUTE` variable in `.env`.
+
+   **Example .env variables:**
+   ```env
+   PORT=5002
+   GMAIL_CLIENT_ID=your-google-client-id
+   GMAIL_CLIENT_SECRET=your-google-client-secret
+   GMAIL_REDIRECT_URI=https://localhost:5002/auth/gmail/callback
+   OUTLOOK_CLIENT_ID=your-outlook-client-id
+   OUTLOOK_CLIENT_SECRET=your-outlook-client-secret
+   OUTLOOK_TENANT_ID=your-outlook-tenant-id
+   OUTLOOK_REDIRECT_URI=https://localhost:5002/auth/outlook/callback
+   SSL_KEY_PATH=ssl/localhost-key.pem
+   SSL_CERT_PATH=ssl/localhost-cert.pem
+   REACT_APP_BACKEND_URL=https://localhost:5002
+   FRONTEND_REDIRECT_URL=http://localhost:5003/
+   FRONTEND_POSTAUTH_ROUTE=/home
+   # FRONTEND_REDIRECT_URL is used as a fallback for dynamic OAuth2 redirects if not provided by the frontend.
+   # FRONTEND_POSTAUTH_ROUTE sets the route to redirect to after authentication (default: /home)
+   ```
 
 5. Train the email classifier (optional):
    ```bash
@@ -105,3 +130,36 @@ This method is particularly useful for Linux CLI environments or when running th
 - Ensure you have Python 3.8+ and Node.js installed.
 - Use `npm start` in the `frontend` directory to run the frontend separately.
 - Use `node server.js` in the `backend` directory to run the backend separately.
+
+## CORS configuration
+
+The backend enforces CORS to only allow requests from known frontend origins and to support cross-site cookies for session auth.
+
+- Where it lives: `backend/server.js` in the `allowedOrigins` array and the `cors(...)` middleware.
+- Default allowed dev origins (both HTTP and HTTPS):
+  - `localhost` and `127.0.0.1` on ports 3000, 5000, 5002, 5003, 5173
+- Preflight: `OPTIONS` is enabled. Common headers are allowed and `credentials` is set to `true`.
+
+How to add a new origin
+1) Determine your exact frontend origin (scheme + host + port), for example:
+   - `https://localhost:5003`
+   - `https://mail.mycorp.internal`
+2) Add that exact string to `allowedOrigins` in `backend/server.js`.
+3) Restart the backend.
+
+Example: internal/corporate deployments
+- Add explicit entries for each UI hostname:
+  - `https://mail.mycorp.internal`
+  - `https://intranet.mycorp.local`
+- If you serve multiple subdomains, add each explicitly. Wildcards are not used in the current `origin` function. To support patterns, you can switch to a regex check in the CORS `origin` callback.
+
+Cookies, HTTPS, and credentials
+- The session cookie is configured with `secure: true` and `sameSite: 'None'`, which requires the frontend to be served over HTTPS for cookies to be set and sent.
+- All frontend requests that need cookies must send credentials:
+  - `fetch(url, { credentials: 'include' })`
+  - `axios.post(url, data, { withCredentials: true })`
+- Ensure `REACT_APP_BACKEND_URL` points to the HTTPS backend origin you’re running (e.g., `https://localhost:5002`).
+
+Debugging tips
+- In the browser DevTools → Network tab, open a failing request and check the Request Headers → `Origin`. It must exactly match an entry in `allowedOrigins`.
+- Verify the preflight `OPTIONS` response includes `Access-Control-Allow-Origin` and `Access-Control-Allow-Credentials: true`.

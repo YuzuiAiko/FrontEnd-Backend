@@ -9,8 +9,24 @@ const __dirname = path.dirname(__filename);
 
 // Load environment variables from the .env file into process.env
 dotenv.config({ path: path.resolve(__dirname, '.env') }); // Load environment variables from the .env file into process.env
-// console.log("Environment variables loaded:", process.env);
+
+// Try loading .env from repo root, then backend, then frontend
+const envPaths = [
+	path.resolve(__dirname, '../.env'),
+	path.resolve(__dirname, '.env'),
+	path.resolve(__dirname, '../frontend/.env'),
+];
+let loadedEnv = false;
+for (const envPath of envPaths) {
+	const result = dotenv.config({ path: envPath });
+	if (result.parsed) {
+		loadedEnv = envPath;
+		break;
+	}
+}
+console.log("Loaded GMAIL_REDIRECT_URI:", process.env.GMAIL_REDIRECT_URI, "from", loadedEnv || "no .env found");
 
 export const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID;
 export const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
 export const GMAIL_REDIRECT_URI = process.env.GMAIL_REDIRECT_URI;
+export const FRONTEND_REDIRECT_URL = process.env.FRONTEND_REDIRECT_URL;

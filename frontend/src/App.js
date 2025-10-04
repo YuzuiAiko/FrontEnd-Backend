@@ -32,26 +32,29 @@ function App() {
   }, []);
 
   // Function to handle Gmail login via OAuth
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002";
+  const frontendUrl = window.location.origin;
   const handleGmailLogin = () => {
-    window.location.href = "https://localhost:5000/auth/gmail/login"; // Redirect to backend Gmail OAuth login
+    window.location.href = `${backendUrl}/auth/gmail/login?redirect=${encodeURIComponent(frontendUrl)}`;
   };
 
   // Function to handle email and password login with the backend
   const handleEmailLogin = async () => {
     if (email && password) {
       try {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5003"; // Use environment variable or default to 5003
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002"; // Use environment variable or default to 5003
         // Send email and password to the backend for authentication
-        const response = await axios.post(`${backendUrl}/api/login`, {
-          email,
-          password,
-        });
+        const response = await axios.post(
+          `${backendUrl}/api/login`,
+          { email, password },
+          { withCredentials: true }
+        );
 
         console.log("Login successful:", response.data); // Log success response
         setLoginError(null); // Clear any previous login errors
 
-        // Redirect to Gmail login after successful email/password login
-        window.location.href = "https://localhost:5000/auth/gmail/login";
+    // Redirect to Gmail login after successful email/password login
+    window.location.href = `${backendUrl}/auth/gmail/login?redirect=${encodeURIComponent(frontendUrl)}`;
       } catch (error) {
         console.error("Login failed:", error.response ? error.response.data.message : error.message); // Log error
         setLoginError("Invalid email or password."); // Display error message
