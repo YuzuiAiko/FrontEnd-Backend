@@ -126,7 +126,7 @@ const options = {
 };
 
 // Start the HTTPS server on the specified port
-const PORT = process.env.PORT || 5000; // Ensure backend uses port 5000
+const PORT = process.env.PORT || 5002; // Ensure backend uses port 5002
 https.createServer(options, app).listen(PORT, () => {
   console.log(`Server running at https://localhost:${PORT}`); // Log server start message
 });
