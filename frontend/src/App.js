@@ -32,7 +32,7 @@ function App() {
   }, []);
 
   // Function to handle Gmail login via OAuth
-  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002";
   const frontendUrl = window.location.origin;
   const handleGmailLogin = () => {
     window.location.href = `${backendUrl}/auth/gmail/login?redirect=${encodeURIComponent(frontendUrl)}`;
