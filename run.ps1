@@ -44,26 +44,33 @@ if ($Service -eq "install" -or $Service -eq "all") {
 }
 
 # Start services based on the parameter
+
+# Sequentially start SVM (5001), backend (5002), and frontend (5003)
 if ($Service -eq "svm" -or $Service -eq "all") {
-    Write-Host "Starting SVM Model..."
+    Write-Host "Starting SVM Model on port 5001..."
     Start-ProcessWithWindow -Path "python" -Arguments "svm_model.py" -WorkingDirectory "./backend/classifier"
 }
 
+Start-Sleep -Seconds 2
+
 if ($Service -eq "backend" -or $Service -eq "all") {
-    Write-Host "Starting Backend Server..."
+    Write-Host "Starting Backend Server on port 5002..."
     Start-ProcessWithWindow -Path "node" -Arguments "server.js" -WorkingDirectory "./backend"
 }
 
+Start-Sleep -Seconds 2
+
 if ($Service -eq "frontend" -or $Service -eq "all") {
-    Write-Host "Starting Frontend..."
+    Write-Host "Starting Frontend on port 5003..."
     Start-ProcessWithWindow -Path "npm" -Arguments "start" -WorkingDirectory "./frontend"
 }
 
-# Add a new service command to run all three servers without installing dependencies
 if ($Service -eq "run") {
-    Write-Host "Starting all services (SVM Model, Backend, Frontend)..."
+    Write-Host "Starting all services sequentially (SVM 5001, Backend 5002, Frontend 5003)..."
     & $PSCommandPath -Service svm
+    Start-Sleep -Seconds 2
     & $PSCommandPath -Service backend
+    Start-Sleep -Seconds 2
     & $PSCommandPath -Service frontend
 }
 
