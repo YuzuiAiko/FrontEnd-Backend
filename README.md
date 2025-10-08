@@ -94,8 +94,6 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
 
 4. Explore features like email categorization, sending emails, and more.
 
-## How Emails Are Gathered and Stored
-
 ## Authentication Flow: Frontend, Backend, and Login Methods
 
 The authentication process between the frontend and backend is based on OAuth2 for both Gmail and Outlook. Here’s how the flow works:
@@ -134,6 +132,8 @@ The authentication process between the frontend and backend is based on OAuth2 f
 
 **See also:**
 - The CORS and session cookie configuration section below for more on cross-origin and credential handling.
+
+## How Emails Are Gathered and Stored
 
 The backend gathers emails from Gmail and Outlook using their respective APIs after the user authenticates. For Gmail, the `/gmail/callback` route fetches and classifies emails, then stores them in the session (`req.session.emails`). The frontend retrieves these emails by calling `/gmail/emails`.
 
