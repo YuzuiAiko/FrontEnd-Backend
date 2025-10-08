@@ -96,6 +96,45 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
 
 ## How Emails Are Gathered and Stored
 
+## Authentication Flow: Frontend, Backend, and Login Methods
+
+The authentication process between the frontend and backend is based on OAuth2 for both Gmail and Outlook. Here’s how the flow works:
+
+1. **User Initiates Login from Frontend:**
+   - The user clicks a login button (e.g., "Sign in with Google" or "Sign in with Outlook") in the frontend React app.
+   - The frontend opens a new window or redirects the user to the backend’s OAuth2 login endpoint (e.g., `/auth/gmail/login` or `/auth/outlook/login`).
+
+2. **Backend Handles OAuth2 Flow:**
+   - The backend redirects the user to the third-party provider’s (Google or Microsoft) OAuth2 consent screen.
+   - After the user authenticates and grants permissions, the provider redirects back to the backend’s callback endpoint (e.g., `/auth/gmail/callback` or `/auth/outlook/callback`).
+
+3. **Backend Exchanges Code for Tokens:**
+   - The backend receives an authorization code and exchanges it for access/refresh tokens.
+   - These tokens are stored in the user’s session (`req.session.tokens`).
+
+4. **Session and Cookie Handling:**
+   - The backend sets a session cookie in the user’s browser. This cookie is configured as `secure: true` and `sameSite: 'None'` for cross-site HTTPS use.
+   - The session contains the user’s tokens and, after email fetching, the emails themselves.
+
+5. **Frontend Receives Redirect:**
+   - The backend redirects the user back to the frontend (using a dynamic or fallback redirect URL, e.g., `FRONTEND_REDIRECT_URL`), typically to a route like `/home`.
+   - The frontend can now make authenticated requests to the backend (e.g., to fetch emails), with the session cookie included.
+
+6. **Authenticated API Requests:**
+   - The frontend uses `fetch` or `axios` with credentials enabled (`credentials: 'include'` or `withCredentials: true`) to call backend endpoints.
+   - The backend checks the session for tokens and user data to authorize requests.
+
+**Supported Login Methods:**
+- **Gmail:** Uses Google OAuth2. Endpoints: `/auth/gmail/login`, `/auth/gmail/callback`.
+- **Outlook:** Uses Microsoft OAuth2. Endpoints: `/auth/outlook/login`, `/auth/outlook/callback`.
+
+**Security Notes:**
+- All sensitive data (tokens, emails) are stored in the server-side session, not in the frontend.
+- Session cookies require HTTPS and proper CORS configuration (see below).
+
+**See also:**
+- The CORS and session cookie configuration section below for more on cross-origin and credential handling.
+
 The backend gathers emails from Gmail and Outlook using their respective APIs after the user authenticates. For Gmail, the `/gmail/callback` route fetches and classifies emails, then stores them in the session (`req.session.emails`). The frontend retrieves these emails by calling `/gmail/emails`.
 
 For Outlook, after OAuth2 authentication, the backend fetches emails from Microsoft Graph API and returns them to the frontend (see `backend/routes/outlook.js`).
