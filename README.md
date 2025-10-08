@@ -77,6 +77,7 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
    python train_model.py
    ```
 
+
 ## Usage
 
 1. Start all services:
@@ -93,7 +94,40 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
 
 4. Explore features like email categorization, sending emails, and more.
 
-## Alternate Usage with tmux
+## How Emails Are Gathered and Stored
+
+The backend gathers emails from Gmail and Outlook using their respective APIs after the user authenticates. For Gmail, the `/gmail/callback` route fetches and classifies emails, then stores them in the session (`req.session.emails`). The frontend retrieves these emails by calling `/gmail/emails`.
+
+For Outlook, after OAuth2 authentication, the backend fetches emails from Microsoft Graph API and returns them to the frontend (see `backend/routes/outlook.js`).
+
+**Session Storage:**
+- Emails are not stored in a database. Instead, they are kept in the user's session for the duration of their login. If the session is lost (e.g., browser closed, session expired), emails must be refetched.
+
+**Endpoints:**
+- `GET /gmail/emails` — Returns emails stored in the session for Gmail accounts.
+- (For Outlook, emails are returned directly after authentication.)
+
+**Security:**
+- Session cookies are configured as `secure: true` and `sameSite: 'None'` to ensure they are only sent over HTTPS and are cross-site compatible.
+
+See also the CORS and cookie configuration notes below for more details on session handling.
+
+1. Start all services:
+   ```bash
+   cd FrontEnd-Backend
+   ./run.ps1
+   ```
+
+2. Access the application:
+   - Frontend: [https://localhost:5002](https://localhost:5002)
+   - Backend: [https://localhost:5000](https://localhost:5000)
+
+3. Log in using your Gmail account or email credentials.
+
+4. Explore features like email categorization, sending emails, and more.
+
+
+## Running All Services with tmux (Optional)
 
 For users who prefer using `tmux` to manage multiple terminal sessions, a `start_services.sh` script is provided. This script launches all services (SVM Model, Backend, Frontend) in separate `tmux` panes for better process management.
 
@@ -131,7 +165,8 @@ This method is particularly useful for Linux CLI environments or when running th
 - Use `npm start` in the `frontend` directory to run the frontend separately.
 - Use `node server.js` in the `backend` directory to run the backend separately.
 
-## CORS configuration
+
+## CORS Configuration and Session Cookies
 
 The backend enforces CORS to only allow requests from known frontend origins and to support cross-site cookies for session auth.
 
