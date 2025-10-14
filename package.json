@@ -3,7 +3,7 @@
     "@azure/msal-browser": "^3.27.0",
     "@azure/msal-react": "^2.2.0",
     "@emotion/react": "^11.13.5",
-    "@emotion/styled": "^11.13.5",
+    "@emotion/styled": "^11.14.1",
     "@mui/material": "^6.1.8",
     "axios": "^1.7.7",
     "bootstrap": "^5.3.3",
