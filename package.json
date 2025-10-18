@@ -7,7 +7,7 @@
     "@mui/material": "^6.1.8",
     "axios": "^1.7.7",
     "bootstrap": "^5.3.3",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "firebase": "^11.0.2",
     "gapi-script": "^1.2.0",
     "i18next": "^25.1.1",
