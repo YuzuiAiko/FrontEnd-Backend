@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@azure/msal-browser": "^3.27.0",
+    "@azure/msal-browser": "^3.30.0",
     "@azure/msal-react": "^2.2.0",
     "@emotion/react": "^11.13.5",
     "@emotion/styled": "^11.13.5",
