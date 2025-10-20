@@ -3,16 +3,14 @@
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "electron": "electron .",
-    "electron:dev": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "npm run build && electron-builder",
-    "electron:dist": "electron-builder -mwl",
-    "make": "npm run build && electron-builder --win",
-    "package": "npm run build && electron-builder build --win -c.extraMetadata.main=build/main.js"
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "electron:dev": "electron .",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm install",
+    "build": "npm run build:frontend && npm run build:backend",
+    "package:win": "electron-builder build --win",
+    "dist": "npm run build && npm run package:win"
   },
   "dependencies": {
     "@azure/msal-browser": "^3.30.0",
@@ -52,24 +50,32 @@
     "appId": "com.imfrisivmail.app",
     "productName": "Imfrisiv Mail",
     "files": [
-      "build/**/*",
+      "frontend/build/**/*",
+      "backend/**/*",
+      "!backend/node_modules/**/*",
       "node_modules/**/*",
       "package.json",
       "main.js",
       "preload.js"
     ],
     "directories": {
+      "output": "dist",
       "buildResources": "assets"
     },
     "win": {
-      "icon": "assets/icon.ico",
+      "icon": "frontend/public/logo500.png",
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
       ]
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     }
   },
   "eslintConfig": {

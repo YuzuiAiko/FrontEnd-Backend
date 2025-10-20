@@ -115,16 +115,17 @@ The application can be installed and run as a native desktop application using E
 
 3. Build the application:
    ```bash
-   # For Windows installer
-   npm run package
-   # For development build
-   npm run electron:build
+   # Build frontend and backend first
+   npm run build
+   
+   # Create Windows installer
+   npm run dist
    ```
 
 This will create executable files in the `dist` directory:
-- Windows: Find the `.exe` installer in `dist/`
-- macOS: Find the `.dmg` file in `dist/` (requires build on macOS)
-- Linux: Find `.deb` and `.rpm` packages in `dist/` (requires build on Linux)
+- Windows: Find the setup `.exe` installer in `dist/`
+- The installer will create start menu shortcuts and optionally desktop shortcuts
+- The application will bundle both frontend and backend together
 
 The desktop application includes all necessary services bundled together, so you don't need to run servers separately.
 
