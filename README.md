@@ -17,6 +17,7 @@
 - Authenticate with your Google account securely.
 - Send and receive messages with a sleek interface.
 - Works on every device with Internet access.
+- Available as a desktop application (Windows, macOS, Linux)
 
 ## Background
 
@@ -94,9 +95,39 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
 
 4. Explore features like email categorization, sending emails, and more.
 
+## Desktop Application
+
+The application can be installed and run as a native desktop application using Electron. Here's how to build it:
+
+1. Switch to the Electron branch:
+   ```bash
+   git checkout feat-wrapwithelectron
+   ```
+
+2. Install all dependencies:
+   ```bash
+   npm install
+   cd frontend
+   npm install
+   cd ../backend
+   npm install
+   ```
+
+3. Build the application:
+   ```bash
+   npm run make
+   ```
+
+This will create executable files in the `out` directory:
+- Windows: Find the `.exe` installer in `out/make/squirrel.windows/x64`
+- macOS: Find the `.dmg` file in `out/make/`
+- Linux: Find `.deb` and `.rpm` packages in `out/make/`
+
+The desktop application includes all necessary services bundled together, so you don't need to run servers separately.
+
 ## Authentication Flow: Frontend, Backend, and Login Methods
 
-The authentication process between the frontend and backend is based on OAuth2 for both Gmail and Outlook. Here’s how the flow works:
+The authentication process between the frontend and backend is based on OAuth2 for both Gmail and Outlook. Here's how the flow works:
 
 1. **User Initiates Login from Frontend:**
    - The user clicks a login button (e.g., "Sign in with Google" or "Sign in with Outlook") in the frontend React app.
