@@ -20,7 +20,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "electron": "electron ../../main.js",
-    "electron:dev": "concurrently \"SET BROWSER=none && SET HTTPS=false && npm start\" \"wait-on http://localhost:3000 && electron ../../main.js\"",
+    "electron:dev": "concurrently \"SET BROWSER=none && SET HTTPS=false && SET PORT=5002 && npm start\" \"wait-on http://localhost:5002 && electron ../../main.js\"",
     "electron:build": "npm run build && electron-builder",
     "electron:dist": "electron-builder -mwl",
     "test": "react-scripts test",
