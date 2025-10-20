@@ -10,21 +10,25 @@
     "axios": "^1.7.7",
     "dompurify": "^3.2.1",
     "gapi-script": "^1.2.0",
+    "i18next": "^25.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-i18next": "^15.7.4",
     "react-router-dom": "^7.0.1",
     "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+  "start": "set HTTPS=true&&set PORT=5003&&set SSL_CRT_FILE=ssl/localhost-cert.pem&&set SSL_KEY_FILE=ssl/localhost-key.pem&&react-scripts start",
     "build": "react-scripts build",
     "electron": "electron ../../main.js",
     "electron:dev": "concurrently \"SET BROWSER=none && SET HTTPS=false && SET PORT=5002 && npm start\" \"wait-on http://localhost:5002 && electron ../../main.js\"",
     "electron:build": "npm run build && electron-builder",
     "electron:dist": "electron-builder -mwl",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "install:force": "npm install --force",
+    "install:legacy": "npm install --legacy-peer-deps"
   },
   "eslintConfig": {
     "extends": [

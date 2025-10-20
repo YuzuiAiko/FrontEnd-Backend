@@ -3,6 +3,7 @@ import DOMPurify from "dompurify"; // To sanitize HTML and prevent XSS attacks
 import "./homepage.css"; // Importing styles for the component
 
 const Homepage = ({ userEmail }) => {
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
   // State hooks for managing various aspects of the component
   const [emails, setEmails] = useState([]); // Stores the fetched emails
   const [loading, setLoading] = useState(true); // Tracks loading state
@@ -20,220 +21,206 @@ const Homepage = ({ userEmail }) => {
   const [sidebarVisible, setSidebarVisible] = useState(false); // Toggles the sidebar visibility
   const [activeCategory, setActiveCategory] = useState("Inbox"); // Tracks the active email category
 
+  // Light/Dark Mode state
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const toggleDarkMode = () => setIsDarkMode((dm) => !dm);
+
   // Fetch emails from the server
   const fetchEmails = useCallback(() => {
-    fetch("https://localhost:5000/auth/gmail/emails", {
+  fetch(`${backendUrl}/auth/gmail/emails`, {
       method: "GET",
-      credentials: "include", // Includes credentials for authentication
+      credentials: "include",
     })
-      .then((response) => response.json())
+      .then((res) => res.json())
       .then((data) => {
         if (data.emails) {
-          const formattedEmails = data.emails.map(email => ({
+          const formatted = data.emails.map((email) => ({
             ...email,
-            classification: Array.isArray(email.classification) 
-              ? email.classification 
-              : [email.classification], // Ensure classification is always an array
+            classification: Array.isArray(email.classification)
+              ? email.classification
+              : [email.classification],
           }));
-          setEmails(formattedEmails); // Update state with emails
-          setFilteredEmails(formattedEmails); // Initialize filtered emails
-          console.log("Fetched emails with classifications:", formattedEmails);
+          setEmails(formatted);
+          setFilteredEmails(formatted);
         } else {
-          setError("No emails found."); // Handle case with no emails
+          setError("No emails found.");
         }
-        setLoading(false); // Turn off loading state
+        setLoading(false);
       })
-      .catch((error) => {
-        console.error("Error fetching emails:", error);
-        setError("Failed to load emails."); // Handle errors during fetch
-        setLoading(false); // Turn off loading state
+      .catch((err) => {
+        console.error(err);
+        setError("Failed to load emails.");
+        setLoading(false);
       });
-  }, []); // Empty dependency array ensures this function doesn't change
+  }, []);
 
   useEffect(() => {
-    fetchEmails(); // Initial email fetch
-    const intervalId = setInterval(fetchEmails, 30000); // Poll server every 30 seconds
-
-    return () => clearInterval(intervalId); // Cleanup interval on component unmount
-  }, [fetchEmails]); // Dependency ensures it reruns only if fetchEmails changes
+    fetchEmails();
+    const id = setInterval(fetchEmails, 30000);
+    return () => clearInterval(id);
+  }, [fetchEmails]);
 
   // Merge sort algorithm for sorting emails
-  const mergeSort = useCallback((array, sortBy) => {
-    if (array.length <= 1) return array; // Base case for recursion
-
-    const middle = Math.floor(array.length / 2);
-    const left = mergeSort(array.slice(0, middle), sortBy); // Sort left half
-    const right = mergeSort(array.slice(middle), sortBy); // Sort right half
-
-    return merge(left, right, sortBy); // Merge sorted halves
-  }, []); // Empty dependency ensures stable reference
-
-  // Helper function to merge two sorted arrays
-  const merge = (left, right, sortBy) => {
-    let resultArray = [];
-    let leftIndex = 0;
-    let rightIndex = 0;
-
-    while (leftIndex < left.length && rightIndex < right.length) {
-      if (sortBy === "sender") {
-        if (left[leftIndex].sender.localeCompare(right[rightIndex].sender) < 0) {
-          resultArray.push(left[leftIndex]); // Push from left array
-          leftIndex++;
+  const mergeSort = useCallback((arr, sortBy) => {
+    if (arr.length <= 1) return arr;
+    const mid = Math.floor(arr.length / 2);
+    const left = mergeSort(arr.slice(0, mid), sortBy);
+    const right = mergeSort(arr.slice(mid), sortBy);
+    const merge = (l, r) => {
+      let res = [],
+        i = 0,
+        j = 0;
+      while (i < l.length && j < r.length) {
+        let takeLeft;
+        if (sortBy === "sender") {
+          takeLeft = l[i].sender.localeCompare(r[j].sender) < 0;
+        } else if (sortBy === "subject") {
+          takeLeft = l[i].subject.localeCompare(r[j].subject) < 0;
         } else {
-          resultArray.push(right[rightIndex]); // Push from right array
-          rightIndex++;
+          takeLeft = new Date(l[i].date) > new Date(r[j].date);
         }
-      } else if (sortBy === "subject") {
-        if (left[leftIndex].subject.localeCompare(right[rightIndex].subject) < 0) {
-          resultArray.push(left[leftIndex]); // Push from left array
-          leftIndex++;
+        if (takeLeft) {
+          res.push(l[i++]);
         } else {
-          resultArray.push(right[rightIndex]); // Push from right array
-          rightIndex++;
-        }
-      } else {
-        if (new Date(left[leftIndex].date) > new Date(right[rightIndex].date)) { // Sort by date
-          resultArray.push(left[leftIndex]);
-          leftIndex++;
-        } else {
-          resultArray.push(right[rightIndex]);
-          rightIndex++;
+          res.push(r[j++]);
         }
       }
-    }
+      return res.concat(l.slice(i)).concat(r.slice(j));
+    };
+    return merge(left, right);
+  }, []);
 
-    return resultArray
-      .concat(left.slice(leftIndex)) // Append remaining left elements
-      .concat(right.slice(rightIndex)); // Append remaining right elements
-  };
-
-  // Filter and sort emails based on search query, sorting criteria, and active category
+  // Filter & sort whenever inputs change
   useEffect(() => {
-    const updatedEmails = emails.filter(
-      (email) =>
-        email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        email.sender.toLowerCase().includes(searchQuery.toLowerCase()) // Match search query
+    let updated = emails.filter(
+      (e) =>
+        e.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.sender.toLowerCase().includes(searchQuery.toLowerCase())
     );
-
-    setFilteredEmails(mergeSort(updatedEmails, sortCriteria)); // Sort filtered emails
-
+    updated = mergeSort(updated, sortCriteria);
     if (activeCategory !== "Inbox") {
-      setFilteredEmails((prevFilteredEmails) =>
-        prevFilteredEmails.filter((email) => email.classification.includes(activeCategory)) // Filter by category
+      updated = updated.filter((e) =>
+        e.classification.includes(activeCategory)
       );
     }
-  }, [searchQuery, sortCriteria, emails, activeCategory, mergeSort]); // Rerun on dependency change
-
-  // Handle changing the active email category
-  const handleCategoryChange = (category) => {
-    setActiveCategory(category); // Update active category
-    setCurrentPage(1); // Reset to first page
-  };
-
-  if (loading) {
-    return <p>Loading emails...</p>; // Display while loading
-  }
-
-  if (error) {
-    return <p>{error}</p>; // Display error message
-  }
+    setFilteredEmails(updated);
+  }, [searchQuery, sortCriteria, emails, activeCategory, mergeSort]);
 
   // Pagination logic
-  const indexOfLastEmail = currentPage * emailsPerPage;
-  const indexOfFirstEmail = indexOfLastEmail - emailsPerPage;
-  const currentEmails = filteredEmails.slice(indexOfFirstEmail, indexOfLastEmail); // Emails for current page
+  const indexLast = currentPage * emailsPerPage;
+  const indexFirst = indexLast - emailsPerPage;
+  const currentEmails = filteredEmails.slice(indexFirst, indexLast);
+  const paginate = (num) => setCurrentPage(num);
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber); // Update current page
-
-  // Toggle compose email modal
+  // Compose modal handlers
   const handleComposeToggle = (mode = "new", email = null) => {
     if (mode === "new") {
       setRecipient("");
       setSubject("");
       setBody("");
-    } else if (mode === "reply" && email) {
+    } else if (email) {
       setRecipient(email.sender);
       setSubject(`Re: ${email.subject}`);
-      setBody(""); // Clear body for reply
+      setBody("");
     }
     setShowCompose(true);
   };
 
-  // Handle sending an email
+  // Send email
   const handleSendEmail = async () => {
     try {
-      const response = await fetch("https://localhost:5000/auth/gmail/send", {
+  const res = await fetch(`${backendUrl}/auth/gmail/send`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          to: recipient,
-          subject: subject,
-          body: body,
-        }),
-        credentials: "include", // Include credentials
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ to: recipient, subject, body }),
       });
-
-      const data = await response.json();
-
-      if (data.success) {
+      const result = await res.json();
+      if (result.success) {
         alert("Email Sent!");
-        setRecipient("");
-        setSubject("");
-        setBody("");
         setShowCompose(false);
-
-        fetchEmails(); // Refresh emails after sending
+        fetchEmails();
       } else {
         alert("Failed to send email");
       }
-    } catch (error) {
-      console.error("Error sending email:", error);
+    } catch (err) {
+      console.error(err);
       alert("An error occurred while sending the email.");
     }
   };
 
-  // Format date for display
-  const formatDateTime = (dateString) => {
-    const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return new Date(dateString).toLocaleDateString(undefined, options); // Return formatted date
+  const formatDateTime = (d) =>
+    new Date(d).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+  const handleLogout = async () => {
+    try {
+  await fetch(`${backendUrl}/api/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+      window.location.href = "/"; // Redirect to login page
+    } catch (err) {
+      console.error("Logout failed:", err);
+      alert("Failed to log out. Please try again.");
+    }
   };
 
+  if (loading) return <p>Loading emails...</p>;
+  if (error) return <p>{error}</p>;
+
   return (
-    <div className="homepage-container">
+    <div className={`homepage-container ${isDarkMode ? "dark-mode" : ""}`}>
+      {/* Sidebar */}
       <div className={`sidebar ${sidebarVisible ? "visible" : ""}`}>
         <ul>
+          {["Inbox", "Important", "Drafts", "Spam"].map((cat) => (
+            <li key={cat}>
+              <a onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}>
+                {cat}
+              </a>
+            </li>
+          ))}
           <li>
-            <a href="#inbox" onClick={() => handleCategoryChange("Inbox")}>Inbox</a>
+            <a onClick={() => handleComposeToggle("new")}>Compose</a>
           </li>
           <li>
-            <a href="#important" onClick={() => handleCategoryChange("Important")}>Important</a>
-          </li>
-          <li>
-            <a href="#drafts" onClick={() => handleCategoryChange("Drafts")}>Drafts</a>
-          </li>
-          <li>
-            <a href="#spam" onClick={() => handleCategoryChange("Spam")}>Spam</a>
-          </li>
-          <li>
-            <a href="#compose" onClick={() => handleComposeToggle("new")}>Compose</a>
+            <a onClick={handleLogout}>Logout</a> {/* Logout button */}
           </li>
         </ul>
       </div>
 
+      {/* Main Content */}
       <div className="main-content">
-        <button className="hamburger-icon" onClick={() => setSidebarVisible(!sidebarVisible)}>
-          &#9776;
-        </button>
+        <header>
+          <div>
+            <button
+              className="hamburger-icon"
+              onClick={() => setSidebarVisible((v) => !v)}
+            >
+              &#9776;
+            </button>
+            <img 
+              src="/assets/images/imfrisiv.png" 
+              alt="Logo" 
+              className="top-bar-logo" 
+            />
+            <h1 className="top-bar-title">ImfrisivMail</h1>
+          </div>
+        </header>
 
         {!selectedEmail ? (
           <>
-            <header>
+            <header class="second-header-bar">
               <div className="search-bar">
                 <input
                   type="text"
-                  placeholder="Search emails..."
+                  placeholder="Search emails…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -245,24 +232,37 @@ const Homepage = ({ userEmail }) => {
                   <option value="sender">Sort by Sender</option>
                   <option value="subject">Sort by Subject</option>
                 </select>
+                {/* Light / Dark Mode Switch */}
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={isDarkMode}
+                    onChange={toggleDarkMode}
+                  />
+                  <span className="slider" />
+                </label>
               </div>
             </header>
 
+            {/* Email List */}
             <div className="email-list-container">
-              {currentEmails.map((email, index) => (
+              {currentEmails.map((email, idx) => (
                 <div
-                  key={index}
+                  key={idx}
                   className="email-item"
                   onClick={() => setSelectedEmail(email)}
                 >
                   <h3>{email.subject}</h3>
                   <p>From: {email.sender}</p>
                   <p>Classification: {email.classification.join(", ")}</p>
-                  <p className="date-time">Date: {formatDateTime(email.date)}</p> {/* Display the formatted date and time */}
+                  <p className="date-time">
+                    Date: {formatDateTime(email.date)}
+                  </p>
                 </div>
               ))}
             </div>
 
+            {/* Pagination */}
             <div className="pagination">
               {Array.from(
                 { length: Math.ceil(filteredEmails.length / emailsPerPage) },
@@ -279,14 +279,20 @@ const Homepage = ({ userEmail }) => {
             </div>
           </>
         ) : (
+          /* Email Detail View */
           <div className="email-detail-container">
-            <button className="back-button" onClick={() => setSelectedEmail(null)}>
+            <button
+              className="back-button"
+              onClick={() => setSelectedEmail(null)}
+            >
               Back
             </button>
             <h2>Sender: {selectedEmail.sender}</h2>
             <h3>Subject: {selectedEmail.subject}</h3>
             <p>Classification: {selectedEmail.classification.join(", ")}</p>
-            <p className="date-time">Date: {formatDateTime(selectedEmail.date)}</p> {/* Display the formatted date and time */}
+            <p className="date-time">
+              Date: {formatDateTime(selectedEmail.date)}
+            </p>
             <div
               className="email-body"
               dangerouslySetInnerHTML={{
@@ -302,6 +308,7 @@ const Homepage = ({ userEmail }) => {
           </div>
         )}
 
+        {/* Compose Modal */}
         {showCompose && (
           <div className="compose-modal">
             <div className="compose-form">
@@ -313,12 +320,7 @@ const Homepage = ({ userEmail }) => {
                   ✕
                 </button>
               </div>
-              <input
-                type="text"
-                placeholder="From"
-                value={userEmail}
-                disabled
-              />
+              <input type="text" placeholder="From" value={userEmail} disabled />
               <input
                 type="text"
                 placeholder="Recipient's email"
@@ -335,7 +337,7 @@ const Homepage = ({ userEmail }) => {
                 placeholder="Write your email here..."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-              ></textarea>
+              />
               <button onClick={handleSendEmail}>Send</button>
             </div>
           </div>
@@ -346,5 +348,3 @@ const Homepage = ({ userEmail }) => {
 };
 
 export default Homepage;
-
-

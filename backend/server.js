@@ -10,11 +10,43 @@ const app = express(); // Create an Express application instance
 
 app.use(bodyParser.json()); // Use body-parser to parse JSON request bodies
 
-// Enable CORS to allow cross-origin requests from the specified origin
+const allowedOrigins = [
+  // Localhost (HTTPS)
+  "https://localhost:3000",
+  "https://localhost:5002",
+  "https://localhost:5000",
+  "https://localhost:5003",
+  "https://localhost:5173",
+  // Localhost (HTTP)
+  "http://localhost:3000",
+  "http://localhost:5002",
+  "http://localhost:5000",
+  "http://localhost:5003",
+  "http://localhost:5173",
+  // 127.0.0.1 loopback (HTTPS)
+  "https://127.0.0.1:3000",
+  "https://127.0.0.1:5002",
+  "https://127.0.0.1:5000",
+  "https://127.0.0.1:5003",
+  "https://127.0.0.1:5173",
+  // 127.0.0.1 loopback (HTTP)
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:5002",
+  "http://127.0.0.1:5000",
+  "http://127.0.0.1:5003",
+  "http://127.0.0.1:5173",
+];
+
 app.use(
   cors({
-    origin: "https://localhost:3000", // Allow requests only from this origin
-    methods: ["GET", "POST"], // Allow only GET and POST methods
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true); // Allow the request
+      } else {
+        callback(new Error("Not allowed by CORS")); // Block the request
+      }
+    },
+    methods: ["GET", "POST", "OPTIONS"], // Allow GET, POST, and preflight OPTIONS
     credentials: true, // Enable sending credentials (e.g., cookies, authorization headers)
   })
 );
@@ -68,6 +100,17 @@ app.post("/api/login", (req, res) => {
   }
 });
 
+app.post("/api/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Error destroying session:", err);
+      return res.status(500).json({ message: "Failed to log out" });
+    }
+    res.clearCookie("connect.sid"); // Clear the session cookie
+    res.status(200).json({ message: "Logged out successfully" });
+  });
+});
+
 // Use Gmail routes for handling authentication and email operations
 app.use("/auth/gmail", gmailRoutes);
 
@@ -83,7 +126,7 @@ const options = {
 };
 
 // Start the HTTPS server on the specified port
-const PORT = process.env.PORT || 5000; // Use port from environment variable or default to 5000
+const PORT = process.env.PORT || 5002; // Ensure backend uses port 5002
 https.createServer(options, app).listen(PORT, () => {
   console.log(`Server running at https://localhost:${PORT}`); // Log server start message
 });
