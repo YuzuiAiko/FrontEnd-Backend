@@ -115,19 +115,22 @@ The application can be installed and run as a native desktop application using E
 
 3. Build the application:
    ```bash
-   npm run make
+   # For Windows installer
+   npm run package
+   # For development build
+   npm run electron:build
    ```
 
-This will create executable files in the `out` directory:
-- Windows: Find the `.exe` installer in `out/make/squirrel.windows/x64`
-- macOS: Find the `.dmg` file in `out/make/`
-- Linux: Find `.deb` and `.rpm` packages in `out/make/`
+This will create executable files in the `dist` directory:
+- Windows: Find the `.exe` installer in `dist/`
+- macOS: Find the `.dmg` file in `dist/` (requires build on macOS)
+- Linux: Find `.deb` and `.rpm` packages in `dist/` (requires build on Linux)
 
 The desktop application includes all necessary services bundled together, so you don't need to run servers separately.
 
 ## Authentication Flow: Frontend, Backend, and Login Methods
 
-The authentication process between the frontend and backend is based on OAuth2 for both Gmail and Outlook. Here's how the flow works:
+The authentication process between the frontend and backend is based on OAuth2 for both Gmail and Outlook. Here’s how the flow works:
 
 1. **User Initiates Login from Frontend:**
    - The user clicks a login button (e.g., "Sign in with Google" or "Sign in with Outlook") in the frontend React app.
