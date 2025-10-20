@@ -85,7 +85,7 @@ function createWindow() {
 
   // Add a delay before loading the URL to give the servers some time to start
   setTimeout(() => {
-    mainWindow.loadURL('http://localhost:3000');
+    mainWindow.loadURL('https://localhost:5002');
   }, 5000); // 5 seconds delay
 }
 
