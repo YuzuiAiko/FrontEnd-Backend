@@ -60,23 +60,43 @@ class EmailClassifier:
         """Process CSV email exports from Outlook."""
         emails = []
         try:
-            with open(csv_file, 'r', encoding='utf-8') as f:
+            with open(csv_file, 'r', encoding='utf-8-sig') as f:  # Use utf-8-sig to handle BOM
                 reader = csv.DictReader(f)
                 for row in reader:
-                    # Common CSV columns for Outlook exports
-                    subject = row.get('Subject', '')
-                    body = row.get('Body', '') or row.get('Message Body', '') or row.get('Content', '')
-                    sender = row.get('From', '') or row.get('Sender', '')
-                    date = row.get('Received Time', '') or row.get('Date', '')
+                    # Outlook CSV columns based on actual file structure
+                    subject = row.get('Subject', '').strip()
+                    body = row.get('Body', '').strip()
                     
+                    # Handle From field - use Address if available, otherwise Name
+                    from_name = row.get('From: (Name)', '').strip()
+                    from_address = row.get('From: (Address)', '').strip()
+                    sender = from_address if from_address else from_name
+                    
+                    # Handle To field similarly
+                    to_name = row.get('To: (Name)', '').strip()
+                    to_address = row.get('To: (Address)', '').strip()
+                    recipient = to_address if to_address else to_name
+                    
+                    # Additional metadata from Outlook CSV
+                    categories = row.get('Categories', '').strip()
+                    importance = row.get('Importance', '').strip()
+                    sensitivity = row.get('Sensitivity', '').strip()
+                    
+                    # Only process emails with content
                     if body.strip():
                         emails.append({
                             'subject': subject,
                             'body': self._clean_email_content(body),
                             'sender': sender,
-                            'date': date,
+                            'recipient': recipient,
+                            'categories': categories,
+                            'importance': importance,
+                            'sensitivity': sensitivity,
                             'source': str(csv_file)
                         })
+                        
+            print(f"Processed {len(emails)} emails from {csv_file}")
+                        
         except Exception as e:
             print(f"Error processing CSV file {csv_file}: {e}")
         return emails
@@ -203,14 +223,24 @@ class EmailClassifier:
     def classify_email_with_llm(self, email_data: Dict[str, Any]) -> str:
         """Classify a single email using OpenAI LLM."""
         try:
+            # Build enhanced prompt with Outlook metadata
+            metadata_info = ""
+            if email_data.get('categories'):
+                metadata_info += f"\nCategories: {email_data['categories']}"
+            if email_data.get('importance'):
+                metadata_info += f"\nImportance: {email_data['importance']}"
+            if email_data.get('sensitivity'):
+                metadata_info += f"\nSensitivity: {email_data['sensitivity']}"
+            
             prompt = f"""
             Analyze this email and classify it into ONE of these categories: {', '.join(self.categories)}
             
             Email Subject: {email_data['subject']}
             Email Sender: {email_data['sender']}
+            Email Recipient: {email_data.get('recipient', 'N/A')}{metadata_info}
             Email Content: {email_data['body'][:2000]}...
             
-            Consider the content, sender, and context to determine the most appropriate category.
+            Consider the content, sender, recipient, metadata, and context to determine the most appropriate category.
             Respond with ONLY the category name, no explanation.
             """
             
