@@ -22,7 +22,6 @@ const Homepage = ({ userEmail }) => {
   const [sidebarVisible, setSidebarVisible] = useState(false); // Toggles the sidebar visibility
   const [activeCategory, setActiveCategory] = useState("Inbox"); // Tracks the active email category
   const [categories, setCategories] = useState(["Inbox", "Important", "Drafts", "Spam"]);
-  const [compatibilityMapping, setCompatibilityMapping] = useState({});
 
   // Light/Dark Mode state
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -55,7 +54,7 @@ const Homepage = ({ userEmail }) => {
         setError("Failed to load emails.");
         setLoading(false);
       });
-  }, []);
+  }, [backendUrl]);
 
   // Fetch classifier metadata for dynamic categories
   useEffect(() => {
@@ -69,16 +68,14 @@ const Homepage = ({ userEmail }) => {
             setActiveCategory(data.ui_labels[0]);
           }
         }
-        if (data.compatibility_mapping) {
-          setCompatibilityMapping(data.compatibility_mapping);
-        }
+        // compatibility_mapping is available if needed in future
       } catch (e) {
         // Non-fatal; keep defaults
         console.warn("Failed to load classifier metadata", e);
       }
     };
     loadMetadata();
-  }, [classifierUrl]);
+  }, [classifierUrl, activeCategory]);
 
   useEffect(() => {
     fetchEmails();
@@ -207,16 +204,16 @@ const Homepage = ({ userEmail }) => {
         <ul>
           {categories.map((cat) => (
             <li key={cat}>
-              <a onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}>
+              <button type="button" className="link-like" onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}>
                 {cat}
-              </a>
+              </button>
             </li>
           ))}
           <li>
-            <a onClick={() => handleComposeToggle("new")}>Compose</a>
+            <button type="button" className="link-like" onClick={() => handleComposeToggle("new")}>Compose</button>
           </li>
           <li>
-            <a onClick={handleLogout}>Logout</a> {/* Logout button */}
+            <button type="button" className="link-like" onClick={handleLogout}>Logout</button>
           </li>
         </ul>
       </div>
