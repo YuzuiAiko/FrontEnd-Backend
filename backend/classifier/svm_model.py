@@ -128,6 +128,45 @@ def home():
 def favicon():
     return '', 204
 
+@app.route("/model-metadata", methods=["GET"])
+def model_metadata():
+    """Expose model label metadata and compatibility mapping for frontend auto-adjustment."""
+    try:
+        classifier = EmailClassifier()
+
+        label_mapping = classifier.label_mapping or {}
+        id_to_label = {v: k for k, v in label_mapping.items()} if label_mapping else {}
+
+        # Determine ordered labels from model if possible
+        if hasattr(classifier.model, "classes_"):
+            try:
+                ordered_labels = [id_to_label.get(int(cls), str(cls)) for cls in classifier.model.classes_]
+            except Exception:
+                ordered_labels = list(id_to_label.values()) if id_to_label else []
+        else:
+            ordered_labels = list(id_to_label.values()) if id_to_label else []
+
+        # Fallback to legacy labels if nothing available
+        if not ordered_labels:
+            ordered_labels = ["Important", "Spam", "Drafts", "Inbox"]
+
+        compatibility_mapping = classifier.compatibility_mapping or {}
+
+        # Derive UI labels from compatibility mapping or title-cased originals
+        ui_labels_set = set()
+        for lbl in ordered_labels:
+            ui_labels_set.add(compatibility_mapping.get(lbl, lbl.title()))
+        ui_labels = sorted(ui_labels_set)
+
+        return jsonify({
+            "labels": ordered_labels,
+            "label_mapping": label_mapping,
+            "compatibility_mapping": compatibility_mapping,
+            "ui_labels": ui_labels
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/classify", methods=["POST"])
 def classify_emails():
     """
