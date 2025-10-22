@@ -22,7 +22,7 @@
     "googleapis": "^144.0.0",
     "https": "^1.0.0",
     "msal-node": "^0.0.1-security",
-    "nylas": "^7.7.1",
+    "nylas": "^7.13.1",
     "python-shell": "^5.0.0"
   }
 }
