@@ -114,6 +114,19 @@ The application can be installed and run as a native desktop application using E
    ```
 
 3. Build the application:
+
+   **Option 1: Using the build script (Recommended)**
+   ```powershell
+   ./build.ps1
+   ```
+   This script will:
+   - Clean up old build artifacts
+   - Install all dependencies
+   - Build the frontend
+   - Create the Windows installer
+   - Show progress and handle errors
+
+   **Option 2: Manual build steps**
    ```bash
    # Build frontend and backend first
    npm run build
@@ -122,10 +135,10 @@ The application can be installed and run as a native desktop application using E
    npm run dist
    ```
 
-This will create executable files in the `dist` directory:
-- Windows: Find the setup `.exe` installer in `dist/`
-- The installer will create start menu shortcuts and optionally desktop shortcuts
-- The application will bundle both frontend and backend together
+   The build process will create:
+   - A Windows installer (`.exe`) in the `dist` directory
+   - Start menu shortcuts and optional desktop shortcuts
+   - A bundled application with frontend and backend integrated
 
 The desktop application includes all necessary services bundled together, so you don't need to run servers separately.
 
