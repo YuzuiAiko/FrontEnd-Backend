@@ -30,18 +30,18 @@ if (Test-Path "frontend/build") {
 
 # Install dependencies
 Write-StepHeader "Installing root dependencies..."
-npm install --verbose
+npm install --verbose --legacy-peer-deps
 Assert-LastExitCode "Failed to install root dependencies"
 
 Write-StepHeader "Installing frontend dependencies..."
 Set-Location frontend
-npm install --verbose
+npm install --verbose --legacy-peer-deps
 Assert-LastExitCode "Failed to install frontend dependencies"
 Set-Location ..
 
 Write-StepHeader "Installing backend dependencies..."
 Set-Location backend
-npm install --verbose
+npm install --verbose --legacy-peer-deps
 Assert-LastExitCode "Failed to install backend dependencies"
 Set-Location ..
 
