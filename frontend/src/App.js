@@ -20,7 +20,8 @@ function App() {
   useEffect(() => {
     const start = () => {
       // Get environment variables from electron bridge if available, otherwise use process.env
-      const clientId = window.electron?.env?.REACT_APP_GMAIL_CLIENT_ID || process.env.REACT_APP_GMAIL_CLIENT_ID;
+      const clientId = window.electron?.env?.GMAIL_CLIENT_ID || process.env.GMAIL_CLIENT_ID;
+      const redirectUrl = window.electron?.env?.FRONTEND_REDIRECT_URL || process.env.FRONTEND_REDIRECT_URL;
       
       if (!clientId) {
         console.error('Gmail client ID not found in environment variables');

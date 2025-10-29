@@ -18,9 +18,9 @@ contextBridge.exposeInMainWorld(
   'electron', {
     // Environment variables (only expose what's needed)
     env: {
-      REACT_APP_GMAIL_CLIENT_ID: process.env.REACT_APP_GMAIL_CLIENT_ID,
+      GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID,
       REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL,
-      REACT_APP_FRONTEND_URL: process.env.REACT_APP_FRONTEND_URL
+      FRONTEND_REDIRECT_URL: process.env.FRONTEND_REDIRECT_URL
     },
     // Email functionality
     sendEmail: (data) => {
