@@ -17,6 +17,7 @@
 - Authenticate with your Google account securely.
 - Send and receive messages with a sleek interface.
 - Works on every device with Internet access.
+- Available as a desktop application (Windows, macOS, Linux)
 
 ## Background
 
@@ -93,6 +94,53 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
 3. Log in using your Gmail account or email credentials.
 
 4. Explore features like email categorization, sending emails, and more.
+
+## Desktop Application
+
+The application can be installed and run as a native desktop application using Electron. Here's how to build it:
+
+1. Switch to the Electron branch:
+   ```bash
+   git checkout feat-wrapwithelectron
+   ```
+
+2. Install all dependencies:
+   ```bash
+   npm install
+   cd frontend
+   npm install
+   cd ../backend
+   npm install
+   ```
+
+3. Build the application:
+
+   **Option 1: Using the build script (Recommended)**
+   ```powershell
+   ./build.ps1
+   ```
+   This script will:
+   - Clean up old build artifacts
+   - Install all dependencies
+   - Build the frontend
+   - Create the Windows installer
+   - Show progress and handle errors
+
+   **Option 2: Manual build steps**
+   ```bash
+   # Build frontend and backend first
+   npm run build
+   
+   # Create Windows installer
+   npm run dist
+   ```
+
+   The build process will create:
+   - A Windows installer (`.exe`) in the `dist` directory
+   - Start menu shortcuts and optional desktop shortcuts
+   - A bundled application with frontend and backend integrated
+
+The desktop application includes all necessary services bundled together, so you don't need to run servers separately.
 
 ## Authentication Flow: Frontend, Backend, and Login Methods
 
