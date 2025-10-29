@@ -2,9 +2,17 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Get environment variables from the main process
 const envVars = {
+  // OAuth Configuration
   GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID,
+  
+  // Frontend Configuration
   REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL,
-  FRONTEND_REDIRECT_URL: process.env.FRONTEND_REDIRECT_URL
+  FRONTEND_REDIRECT_URL: process.env.FRONTEND_REDIRECT_URL,
+  REACT_APP_USE_GROUP_LOGO: process.env.REACT_APP_USE_GROUP_LOGO,
+  
+  // Environment Configuration
+  NODE_ENV: process.env.NODE_ENV || 'production',
+  PUBLIC_URL: process.env.PUBLIC_URL || '.'
 };
 
 // Expose protected methods that allow the renderer process to use
@@ -12,11 +20,9 @@ const envVars = {
 contextBridge.exposeInMainWorld(
   'electron', {
     // Environment variables (only expose what's needed)
-    env: {
-      GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID,
-      REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL,
-      FRONTEND_REDIRECT_URL: process.env.FRONTEND_REDIRECT_URL
-    },
+    env: envVars,
+    // Flag to indicate we're running in Electron
+    isElectron: true,
     // Email functionality
     sendEmail: (data) => {
       return new Promise((resolve) => {
