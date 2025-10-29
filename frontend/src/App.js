@@ -19,8 +19,16 @@ function App() {
   // useEffect to initialize Gmail API client when the app loads
   useEffect(() => {
     const start = () => {
+      // Get environment variables from electron bridge if available, otherwise use process.env
+      const clientId = window.electron?.env?.REACT_APP_GMAIL_CLIENT_ID || process.env.REACT_APP_GMAIL_CLIENT_ID;
+      
+      if (!clientId) {
+        console.error('Gmail client ID not found in environment variables');
+        return;
+      }
+
       gapi.client.init({
-        clientId: process.env.REACT_APP_GMAIL_CLIENT_ID, // Gmail API Client ID from environment variables
+        clientId: clientId,
         scope: "email", // Gmail API scope
         discoveryDocs: [
           "https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest", // Gmail API discovery document
