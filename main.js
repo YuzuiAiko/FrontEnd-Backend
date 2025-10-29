@@ -84,11 +84,17 @@ function createWindow() {
   windowState.track(mainWindow);
 
   // In production, load from the build files
-  mainWindow.loadFile(path.join(__dirname, 'frontend', 'build', 'index.html'));
+  const indexPath = path.join(__dirname, 'frontend', 'build', 'index.html');
+  console.log('Loading index from:', indexPath);
+  mainWindow.loadFile(indexPath).catch(err => {
+    console.error('Failed to load index.html:', err);
+  });
 
-  // Show window when ready
+  // Show window when ready and open dev tools in case of issues
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    // Uncomment the next line to debug loading issues
+    mainWindow.webContents.openDevTools();
   });
 }
 

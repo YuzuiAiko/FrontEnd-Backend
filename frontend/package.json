@@ -2,6 +2,7 @@
   "name": "sifri-mail",
   "version": "0.1.0",
   "private": true,
+  "homepage": "./",
   "dependencies": {
     "@azure/msal-browser": "^2.27.0",
     "@testing-library/jest-dom": "^5.17.0",
