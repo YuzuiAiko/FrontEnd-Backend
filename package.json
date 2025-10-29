@@ -56,7 +56,8 @@
       "node_modules/**/*",
       "package.json",
       "main.js",
-      "preload.js"
+      "preload.js",
+      "window-state.js"
     ],
     "directories": {
       "output": "dist",
