@@ -1,7 +1,18 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron');
 const { exec } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+const dotenv = require('dotenv');
 const WindowStateManager = require('./window-state');
+
+// Load environment variables
+const envPath = path.join(__dirname, 'frontend', '.env');
+if (fs.existsSync(envPath)) {
+  const envConfig = dotenv.parse(fs.readFileSync(envPath));
+  Object.entries(envConfig).forEach(([key, value]) => {
+    process.env[key] = value;
+  });
+}
 
 let tray = null;
 let mainWindow = null;
