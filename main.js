@@ -83,40 +83,18 @@ function createWindow() {
   // Track window state changes
   windowState.track(mainWindow);
 
-  // Add a delay before loading the URL to give the servers some time to start
-  setTimeout(() => {
-    mainWindow.loadURL('http://localhost:5002');
-  }, 5000); // 5 seconds delay
+  // In production, load from the build files
+  mainWindow.loadFile(path.join(__dirname, 'frontend', 'build', 'index.html'));
+
+  // Show window when ready
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
 }
 
 app.whenReady().then(() => {
-  // Start backend services
-  exec('cd backend/classifier && py svm_model.py', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error starting classifier: ${error.message}`);
-      return;
-    }
-    console.log(`Classifier stdout: ${stdout}`);
-    console.error(`Classifier stderr: ${stderr}`);
-  });
-
-  exec('cd backend && node server.js', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error starting backend server: ${error.message}`);
-      return;
-    }
-    console.log(`Backend server stdout: ${stdout}`);
-    console.error(`Backend server stderr: ${stderr}`);
-  });
-
-  exec('cd frontend && npm start', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error starting frontend: ${error.message}`);
-      return;
-    }
-    console.log(`Frontend stdout: ${stdout}`);
-    console.error(`Frontend stderr: ${stderr}`);
-  });
+  // Set up IPC channels
+  setupIPC();
 
   createWindow();
 
