@@ -4,3 +4,4 @@ Flask==3.1.0
 flask_cors==5.0.0
 joblib==1.4.2
 scikit_learn==1.6.0
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
