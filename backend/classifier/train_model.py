@@ -20,13 +20,40 @@ import numpy as np
 load_dotenv()
 
 class EmailClassifier:
+    """LLM-based email classifier that supports multiple email export formats.
+    
+    This classifier can process emails from various sources:
+    - Outlook exports (CSV format)
+    - Gmail Takeout (MBOX format)
+    - Proton Mail Export Tool (EML format with metadata JSON files)
+    - Standard EML files
+    - Generic JSON email format
+    
+    The classifier uses OpenAI's LLM to classify emails, then trains an SVM model
+    on the LLM classifications for fast inference.
+    """
     def __init__(self):
         """Initialize the LLM-based email classifier."""
         self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         self.categories = os.getenv('CLASSIFICATION_CATEGORIES', 'important,spam,newsletter,social,promotional,personal,business,automated').split(',')
         
     def load_emails_from_data_folder(self, data_folder: str = "email_data") -> List[Dict[str, Any]]:
-        """Load emails from various formats in the email_data folder."""
+        """Load emails from various formats in the email_data folder.
+        
+        Supported formats:
+        - CSV files: Outlook email exports
+        - EML files: Individual email files (standard format or Proton Mail Export Tool format)
+        - MBOX files: Gmail Takeout exports
+        - JSON files: Generic JSON email format
+        
+        For Proton Mail exports:
+        - Place exported folders in the email_data directory
+        - Structure: email_data/{email_address}/mail_{timestamp}/*.eml
+        - The function automatically processes nested directories recursively
+        - Automatically reads .metadata.json files for additional metadata when available
+        
+        All file types are processed recursively from subdirectories.
+        """
         emails = []
         data_path = Path(data_folder)
         
@@ -39,7 +66,8 @@ class EmailClassifier:
             print(f"Processing CSV file: {csv_file}")
             emails.extend(self._process_csv_emails(csv_file))
             
-        # Process EML files (individual email files)
+        # Process EML files (individual email files, including Proton Mail Export Tool format)
+        # This processes files recursively, so nested structures like Proton Mail exports are supported
         for eml_file in data_path.glob("**/*.eml"):
             print(f"Processing EML file: {eml_file}")
             emails.extend(self._process_eml_emails(eml_file))
@@ -49,8 +77,10 @@ class EmailClassifier:
             print(f"Processing MBOX file: {mbox_file}")
             emails.extend(self._process_mbox_emails(mbox_file))
             
-        # Process JSON files
+        # Process JSON files (but skip .metadata.json files as they're handled by _process_eml_emails)
         for json_file in data_path.glob("**/*.json"):
+            if json_file.name.endswith('.metadata.json'):
+                continue  # Skip Proton Mail metadata files as they're processed with EML files
             print(f"Processing JSON file: {json_file}")
             emails.extend(self._process_json_emails(json_file))
             
@@ -102,27 +132,86 @@ class EmailClassifier:
         return emails
     
     def _process_eml_emails(self, eml_file: Path) -> List[Dict[str, Any]]:
-        """Process individual EML email files."""
+        """Process individual EML email files.
+        
+        Supports:
+        - Standard EML files
+        - Proton Mail Export Tool format (EML files with corresponding .metadata.json files)
+        
+        For Proton Mail exports, the function automatically looks for a matching
+        .metadata.json file to extract additional metadata like labels and flags.
+        """
         emails = []
         try:
-            with open(eml_file, 'r', encoding='utf-8', errors='ignore') as f:
-                msg = email.message_from_file(f)
-                
-                subject = msg.get('Subject', '')
-                sender = msg.get('From', '')
-                date = msg.get('Date', '')
-                
-                # Extract body content
-                body = self._extract_email_body(msg)
-                
-                if body.strip():
-                    emails.append({
-                        'subject': subject,
-                        'body': self._clean_email_content(body),
-                        'sender': sender,
-                        'date': date,
-                        'source': str(eml_file)
-                    })
+            # Open EML file in binary mode for better compatibility
+            with open(eml_file, 'rb') as f:
+                msg = email.message_from_bytes(f.read())
+            
+            subject = msg.get('Subject', '')
+            sender = msg.get('From', '')
+            date = msg.get('Date', '')
+            
+            # Extract body content
+            body = self._extract_email_body(msg)
+            
+            if not body.strip():
+                return emails  # Skip emails without body content
+            
+            # Try to load Proton Mail metadata if available
+            # Proton Mail Export Tool creates .metadata.json files alongside .eml files
+            metadata = {}
+            metadata_file = eml_file.with_suffix('.metadata.json')
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as mf:
+                        metadata_data = json.load(mf)
+                        
+                        # Extract useful metadata from Proton Mail format
+                        payload = metadata_data.get('Payload', {})
+                        
+                        # Use metadata subject/sender if EML doesn't have them
+                        if not subject and payload.get('Subject'):
+                            subject = payload['Subject']
+                        if not sender:
+                            sender_info = payload.get('Sender', {})
+                            if sender_info:
+                                name = sender_info.get('Name', '')
+                                address = sender_info.get('Address', '')
+                                sender = f"{name} <{address}>" if name else address
+                        
+                        # Extract additional metadata
+                        metadata['label_ids'] = payload.get('LabelIDs', [])
+                        metadata['external_id'] = payload.get('ExternalID', '')
+                        metadata['unread'] = payload.get('Unread', 0)
+                        metadata['is_replied'] = payload.get('IsReplied', 0)
+                        metadata['is_forwarded'] = payload.get('IsForwarded', 0)
+                        metadata['num_attachments'] = payload.get('NumAttachments', 0)
+                        
+                        # Extract recipient information
+                        to_list = payload.get('ToList', [])
+                        if to_list:
+                            recipients = [item.get('Address', '') for item in to_list if item.get('Address')]
+                            metadata['recipients'] = ', '.join(recipients)
+                except Exception as e:
+                    # If metadata parsing fails, continue without it
+                    pass
+            
+            email_data = {
+                'subject': subject,
+                'body': self._clean_email_content(body),
+                'sender': sender,
+                'date': date,
+                'source': str(eml_file)
+            }
+            
+            # Add metadata if available
+            if metadata:
+                email_data['metadata'] = metadata
+                if metadata.get('recipients'):
+                    email_data['recipient'] = metadata['recipients']
+            
+            emails.append(email_data)
+            
         except Exception as e:
             print(f"Error processing EML file {eml_file}: {e}")
         return emails
@@ -441,7 +530,20 @@ class EmailClassifier:
         return svm_model, vectorizer, label_mapping
 
 def main():
-    """Main function to run the email classification and model training."""
+    """Main function to run the email classification and model training.
+    
+    This function:
+    1. Loads emails from the email_data folder (supports CSV, EML, MBOX, JSON formats)
+    2. Classifies emails using OpenAI LLM
+    3. Trains an SVM model on the LLM classifications
+    4. Saves the trained model as joblib files for use with svm_model.py
+    
+    Supported email export formats:
+    - Outlook: CSV files
+    - Gmail Takeout: MBOX files
+    - Proton Mail Export Tool: EML files with .metadata.json files (nested in folders)
+    - Standard: EML files, JSON files
+    """
     print("Starting LLM-based Email Classification and Model Training...")
     
     # Check if OpenAI API key is available
@@ -459,6 +561,7 @@ def main():
     if not emails:
         print("No emails found in the email_data folder.")
         print("Please add your email exports (CSV, EML, MBOX, or JSON files) to the email_data folder.")
+        print("For Proton Mail exports, place the exported folders in email_data directory.")
         return
     
     print(f"Found {len(emails)} emails to classify.")
