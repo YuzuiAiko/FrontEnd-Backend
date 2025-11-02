@@ -30,8 +30,6 @@ const getAssetPath = (assetPath) => {
       'app.asar',
       'frontend',
       'build',
-      'static',
-      'media',
       cleanPath
     );
     

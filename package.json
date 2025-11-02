@@ -64,8 +64,8 @@
     ],
     "extraResources": [
       {
-        "from": "frontend/build",
-        "to": "app/frontend/build",
+        "from": "frontend/build/static/media",
+        "to": "app/frontend/build/static/media",
         "filter": [
           "**/*"
         ]

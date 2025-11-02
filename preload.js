@@ -19,17 +19,17 @@ const getAppPath = () => {
 };
 
 const getResourcesPath = () => {
-    // In development
-    if (process.env.NODE_ENV === 'development') return process.cwd();
-    // In production, use the app.asar path
-    const resourcesPath = process.resourcesPath;
-    if (!resourcesPath) return joinPaths(getAppPath(), 'resources');
-    
-    // Check if we're in the app.asar
-    if (resourcesPath.includes('app.asar')) {
-        return resourcesPath.split('app.asar')[0];
-    }
-    return resourcesPath;
+  // Electron always sets process.resourcesPath in production
+  if (typeof process.resourcesPath === 'string' && process.resourcesPath.length > 0) {
+    return process.resourcesPath;
+  }
+  // In development, __dirname is available
+  if (typeof __dirname === 'string' && __dirname.length > 0) {
+    return __dirname;
+  }
+  // Fallback: log error and return '.'
+  console.error('Could not determine app resourcesPath');
+  return '.';
 };
 
 // Get environment variables from the main process
