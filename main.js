@@ -12,21 +12,53 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 // Load environment variables
-const envPath = path.join(__dirname, 'frontend', '.env');
-if (fs.existsSync(envPath)) {
+const getEnvPath = () => {
+  const paths = [
+    path.join(process.resourcesPath, 'app/frontend/.env'),
+    path.join(__dirname, 'frontend', '.env')
+  ];
+  return paths.find(p => fs.existsSync(p));
+};
+
+const envPath = getEnvPath();
+if (envPath) {
+  console.log('Loading environment from:', envPath);
   const envConfig = dotenv.parse(fs.readFileSync(envPath));
   Object.entries(envConfig).forEach(([key, value]) => {
     process.env[key] = value;
   });
+} else {
+  console.error('No .env file found');
 }
 
 // Set up protocol handler for serving local files
 app.whenReady().then(() => {
   protocol.registerFileProtocol('app', (request, callback) => {
-    const filePath = url.fileURLToPath(
-      'file://' + path.join(__dirname, 'frontend/build', request.url.slice('app://./'.length))
-    );
-    callback(filePath);
+    try {
+      // Remove the app:// prefix and leading slashes
+      let filePath = request.url.replace(/^app:\/\/\.?\/?/, '');
+      
+      // Handle static media files
+      if (filePath.includes('static/media')) {
+        filePath = path.join(__dirname, 'frontend', 'build', filePath);
+      } else {
+        filePath = path.join(__dirname, 'frontend', 'build', filePath);
+      }
+      
+      console.log('Protocol handler - Requested:', request.url);
+      console.log('Resolved to:', filePath);
+      console.log('File exists:', fs.existsSync(filePath));
+      
+      if (fs.existsSync(filePath)) {
+        return callback(filePath);
+      } else {
+        console.error('File not found:', filePath);
+        callback({ error: -6 }); // FILE_NOT_FOUND
+      }
+    } catch (error) {
+      console.error('Protocol handler error:', error);
+      callback({ error: -2 }); // FAILED
+    }
   });
 });
 
@@ -103,7 +135,10 @@ function createWindow() {
       // Allow loading local resources
       webviewTag: true
     },
-    icon: path.join(__dirname, 'assets', 'icon.png'),
+    icon: path.join(process.env.NODE_ENV === 'development' 
+      ? path.join(__dirname, 'build', 'icon.png')
+      : path.join(process.resourcesPath, 'app', 'public', 'logo500.png')
+    ),
     show: false // Don't show until ready-to-show
   });
 
@@ -182,69 +217,77 @@ function createWindow() {
 
 // Main initialization
 app.whenReady().then(() => {
-  // Set up logging
-const logRequest = (prefix, request, filePath) => {
-  console.log(`${prefix}:
-    URL: ${request.url}
-    Resolved Path: ${filePath}
-    Exists: ${fs.existsSync(filePath)}
-    Directory: ${__dirname}
-    Working Dir: ${process.cwd()}
-  `);
-};
-
-// Register protocol handler
-protocol.registerFileProtocol('app', (request, callback) => {
-  try {
-    let filePath = request.url.slice('app://'.length);
+  // Set up protocol handler logging
+  const logAssetAccess = (request, resolvedPath) => {
+    console.log('\n[Asset Access Request]');
+    console.log('Requested URL:', request.url);
+    console.log('Resolved Path:', resolvedPath);
+    console.log('File exists:', fs.existsSync(resolvedPath));
+    console.log('Base directory:', __dirname);
     
-    // Handle Windows paths
-    if (process.platform === 'win32') {
-      filePath = filePath.replace(/^\//, '');
+    // List contents of media directory
+    const mediaPath = path.join(__dirname, 'frontend', 'build', 'static', 'media');
+    console.log('\nMedia directory contents:');
+    if (fs.existsSync(mediaPath)) {
+      console.log(fs.readdirSync(mediaPath));
+    } else {
+      console.log('Media directory not found at:', mediaPath);
     }
-    
-    // Remove any query parameters
-    filePath = filePath.split('?')[0];
-    
-    // Handle special characters
-    filePath = decodeURIComponent(filePath);
-    
-    // For image files, try multiple base paths
-    if (filePath.match(/\.(png|jpg|jpeg|gif)$/i)) {
-      const possiblePaths = [
-        filePath,
-        path.join(__dirname, filePath),
-        path.join(__dirname, 'frontend', filePath),
-        path.join(__dirname, 'frontend', 'build', filePath),
-        path.join(__dirname, 'frontend', 'src', filePath)
-      ];
+    console.log('-------------------\n');
+  };
+
+  // Register protocol handler for local file access
+  protocol.registerFileProtocol('app', (request, callback) => {
+    try {
+      // Remove app:// prefix and clean up path
+      let requestedPath = request.url.replace(/^app:\/+/, '');
+      requestedPath = decodeURIComponent(requestedPath);
       
-      for (const tryPath of possiblePaths) {
-        logRequest('Trying image path', request, tryPath);
-        if (fs.existsSync(tryPath)) {
-          console.log('Found image at:', tryPath);
-          return callback(tryPath);
+      // For media files, use the build directory
+      if (requestedPath.includes('static/media')) {
+        const resolvedPath = path.join(__dirname, 'frontend', 'build', requestedPath);
+        logAssetAccess(request, resolvedPath);
+        
+        if (fs.existsSync(resolvedPath)) {
+          return callback({
+            path: resolvedPath,
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
         }
       }
       
-      console.error('Image not found in any location:', filePath);
-      return callback({ error: -6 });
+      // For other files, try multiple locations
+      const basePaths = [
+        path.join(__dirname, 'frontend', 'build'),
+        path.join(__dirname, 'frontend'),
+        __dirname
+      ];
+      
+      for (const basePath of basePaths) {
+        const resolvedPath = path.join(basePath, requestedPath);
+        logAssetAccess(request, resolvedPath);
+        
+        if (fs.existsSync(resolvedPath)) {
+          return callback({
+            path: resolvedPath,
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+      }
+      
+      console.error('File not found:', requestedPath);
+      callback({ error: -6 }); // FILE_NOT_FOUND
+    } catch (err) {
+      console.error('Protocol handler error:', err);
+      callback({ error: -2 }); // FAILED
     }
-    
-    // For non-image files
-    logRequest('Processing request', request, filePath);
-    
-    if (fs.existsSync(filePath)) {
-      callback(filePath);
-    } else {
-      console.error('File not found:', filePath);
-      callback({ error: -6 /* FILE NOT FOUND */ });
-    }
-  } catch (err) {
-    console.error('Protocol handler error:', err);
-    callback({ error: -2 /* FAILED */ });
-  }
-});
+  });
 
   // Set up IPC channels
   setupIPC();

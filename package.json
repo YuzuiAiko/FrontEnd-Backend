@@ -52,7 +52,6 @@
     "files": [
       "frontend/build/**/*",
       "frontend/.env",
-      "frontend/src/assets/**/*",
       "backend/**/*",
       "!backend/node_modules/**/*",
       "node_modules/**/*",
@@ -61,16 +60,37 @@
       "preload.js",
       "window-state.js"
     ],
-    "asarUnpack": [
-      "frontend/build/static/media/*",
-      "frontend/src/assets/**/*"
+    "extraResources": [
+      {
+        "from": "frontend/build",
+        "to": "app/frontend/build",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "frontend/.env",
+        "to": "app/frontend/.env"
+      }
     ],
     "directories": {
       "output": "dist",
-      "buildResources": "assets"
+      "buildResources": "build"
     },
+    "extraResources": [
+      {
+        "from": "frontend/build",
+        "to": "app/frontend/build",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "frontend/.env",
+        "to": "app/frontend/.env"
+      }
+    ],
+    "asarUnpack": [
+      "frontend/build/static/media/*"
+    ],
     "win": {
-      "icon": "frontend/public/logo500.png",
+      "icon": "build/icon.png",
       "target": [
         {
           "target": "nsis",

@@ -1,4 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const path = require('path');
+
+// Get build directory path
+const buildDir = path.join(__dirname, 'frontend', 'build');
 
 // Get environment variables from the main process
 const envVars = {
@@ -12,7 +16,13 @@ const envVars = {
   
   // Environment Configuration
   NODE_ENV: process.env.NODE_ENV || 'production',
-  PUBLIC_URL: process.env.PUBLIC_URL || '.'
+  PUBLIC_URL: process.env.PUBLIC_URL || '.',
+  
+  // Build paths for asset loading
+  BUILD_DIR: buildDir,
+  
+  // Resource paths
+  RESOURCES_PATH: process.resourcesPath || __dirname
 };
 
 // Expose protected methods that allow the renderer process to use

@@ -9,16 +9,31 @@ import ErrorBoundary from "./components/ErrorBoundary";
 
 // Import images and get their actual paths in the build
 const getAssetPath = (assetPath) => {
+  console.log('\n[Asset Path Resolution]');
+  console.log('Input path:', assetPath);
+  
+  // Clean up the path - remove leading ./ if present
+  const cleanPath = assetPath.replace(/^\.\//, '');
+  
+  // In Electron context
   if (window.electron) {
-    // In Electron, use absolute path
-    const basePath = window.electron.env.PUBLIC_URL || '.';
-    if (process.env.NODE_ENV === 'development') {
-      return `${basePath}/${assetPath}`;
+    const resourcesPath = window.electron.env.RESOURCES_PATH;
+    console.log('Resources path:', resourcesPath);
+    
+    if (!resourcesPath) {
+      console.error('Resources path not available');
+      return assetPath;
     }
-    // In production Electron, use app:// protocol
-    return `app://./${assetPath}`;
+
+    const mediaPath = path.join(resourcesPath, 'app/frontend/build', cleanPath)
+      .replace(/\\/g, '/');
+    
+    console.log('Resolved media path:', mediaPath);
+    return `file:///${mediaPath}`;
   }
-  // In web browser, use relative path
+  
+  // In web browser
+  console.log('Web browser context, using original path');
   return assetPath;
 };
 
@@ -115,7 +130,7 @@ function App() {
             path="/"
             element={
             <div className="container">
-              {/* Separate div for background to debug rendering */}
+              {/* Separate div for background with fallback color */}
               <div 
                 style={{
                   position: 'absolute',
@@ -123,13 +138,33 @@ function App() {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  backgroundImage: `url(${BackgroundImage})`,
+                  backgroundColor: '#3b1c32', // Fallback color
+                  backgroundImage: BackgroundImage ? `url(${BackgroundImage})` : 'none',
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat',
                   zIndex: 0
                 }}
-              />
+              >
+                {/* Always show debug info in a corner */}
+                <div style={{ 
+                  position: 'fixed', 
+                  bottom: 10, 
+                  right: 10, 
+                  color: 'white', 
+                  backgroundColor: 'rgba(0,0,0,0.7)', 
+                  padding: 10,
+                  borderRadius: 5,
+                  fontSize: '12px',
+                  maxWidth: '400px',
+                  wordBreak: 'break-all'
+                }}>
+                  <div>Image Path: {BackgroundImage || 'Not loaded'}</div>
+                  <div>Electron: {window.electron ? 'Yes' : 'No'}</div>
+                  <div>Build Dir: {window.electron?.env?.BUILD_DIR || 'Not available'}</div>
+                  <div>Node Env: {process.env.NODE_ENV}</div>
+                </div>
+              </div>
               <div className="form-section">
                 <img src={logo} alt="App Logo" className="group-logo" />
                 <h1 className="title">{appName}</h1>
