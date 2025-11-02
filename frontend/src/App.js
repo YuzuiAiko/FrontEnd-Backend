@@ -1,13 +1,32 @@
 // filepath: frontend/src/App.js
-import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"; // React Router for navigation
-import { gapi } from "gapi-script"; // Google API client for Gmail authentication
-import axios from "axios"; // HTTP client for backend communication
-import "./App.css"; // Import application styles
-import GmailLogo from "./assets/Gmail_logo.png"; // Gmail logo for the UI
-import GroupLogo from "./assets/F (1).png"; // Application group logo
-import DefaultLogo from "./assets/imfrisiv.png"; // Default logo
-import Homepage from "./components/Homepage"; // Homepage component
+import React, { useState, useEffect, Suspense } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { gapi } from "gapi-script";
+import axios from "axios";
+import "./App.css";
+import Homepage from "./components/Homepage";
+import ErrorBoundary from "./components/ErrorBoundary";
+
+// Import images and get their actual paths in the build
+const getAssetPath = (assetPath) => {
+  if (window.electron) {
+    // In Electron, use absolute path
+    const basePath = window.electron.env.PUBLIC_URL || '.';
+    if (process.env.NODE_ENV === 'development') {
+      return `${basePath}/${assetPath}`;
+    }
+    // In production Electron, use app:// protocol
+    return `app://./${assetPath}`;
+  }
+  // In web browser, use relative path
+  return assetPath;
+};
+
+// Import images
+const GmailLogo = getAssetPath(require("./assets/Gmail_logo.png"));
+const GroupLogo = getAssetPath(require("./assets/F (1).png"));
+const DefaultLogo = getAssetPath(require("./assets/imfrisiv.png"));
+const BackgroundImage = getAssetPath(require("./assets/images/login-background-laptopwoman.jpg"));
 
 function App() {
   // State variables for managing email, password, and login state
@@ -78,13 +97,39 @@ function App() {
   const logo = useGroupLogo ? GroupLogo : DefaultLogo;
   const appName = useGroupLogo ? "SiFri Mail" : "ImfrisivMail";
 
+  // Debug: Log image loading attempts
+  useEffect(() => {
+    console.log('Attempting to load background image:', BackgroundImage);
+    console.log('Environment:', {
+      isElectron: window.electron !== undefined,
+      publicUrl: process.env.PUBLIC_URL,
+      nodeEnv: process.env.NODE_ENV
+    });
+  }, []);
+
   return (
-    <Router>
-      <Routes>
-        <Route
-          path="/"
-          element={
+    <ErrorBoundary>
+      <Router>
+        <Routes>
+          <Route
+            path="/"
+            element={
             <div className="container">
+              {/* Separate div for background to debug rendering */}
+              <div 
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundImage: `url(${BackgroundImage})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  zIndex: 0
+                }}
+              />
               <div className="form-section">
                 <img src={logo} alt="App Logo" className="group-logo" />
                 <h1 className="title">{appName}</h1>
@@ -139,7 +184,8 @@ function App() {
         />
         <Route path="/home" element={<Homepage />} />
       </Routes>
-    </Router>
+      </Router>
+    </ErrorBoundary>
   );
 }
 
