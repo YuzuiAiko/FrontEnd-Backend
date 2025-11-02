@@ -1,28 +1,35 @@
-const { contextBridge, ipcRenderer } = require('electron');
-const path = require('path');
+const { contextBridge, ipcRenderer, app } = require('electron');
 
-// Get build directory path
-const buildDir = path.join(__dirname, 'frontend', 'build');
+// Debug: Log available environment variables
+console.log('Environment variables in preload:', 
+  Object.keys(process.env)
+    .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD'))
+    .reduce((acc, key) => ({ ...acc, [key]: process.env[key] }), {})
+);
 
 // Get environment variables from the main process
 const envVars = {
   // OAuth Configuration
-  GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID,
+  GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID || '',
   
   // Frontend Configuration
-  REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL,
-  FRONTEND_REDIRECT_URL: process.env.FRONTEND_REDIRECT_URL,
-  REACT_APP_USE_GROUP_LOGO: process.env.REACT_APP_USE_GROUP_LOGO,
+  REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL || 'https://localhost:5002',
+  FRONTEND_REDIRECT_URL: process.env.FRONTEND_REDIRECT_URL || 'http://localhost:5003',
+  REACT_APP_USE_GROUP_LOGO: process.env.REACT_APP_USE_GROUP_LOGO || 'true',
   
   // Environment Configuration
   NODE_ENV: process.env.NODE_ENV || 'production',
   PUBLIC_URL: process.env.PUBLIC_URL || '.',
   
-  // Build paths for asset loading
-  BUILD_DIR: buildDir,
-  
   // Resource paths
-  RESOURCES_PATH: process.resourcesPath || __dirname
+  APP_PATH: __dirname,
+  RESOURCES_PATH: process.resourcesPath || __dirname,
+  
+  // Debug info
+  ENV_LOADED: JSON.stringify({
+    hasGmailId: !!process.env.GMAIL_CLIENT_ID,
+    envKeys: Object.keys(process.env)
+  })
 };
 
 // Expose protected methods that allow the renderer process to use

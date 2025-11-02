@@ -51,7 +51,9 @@
     "productName": "Imfrisiv Mail",
     "files": [
       "frontend/build/**/*",
+      ".env",
       "frontend/.env",
+      "backend/.env",
       "backend/**/*",
       "!backend/node_modules/**/*",
       "node_modules/**/*",

@@ -11,25 +11,45 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true } }
 ]);
 
-// Load environment variables
-const getEnvPath = () => {
-  const paths = [
-    path.join(process.resourcesPath, 'app/frontend/.env'),
-    path.join(__dirname, 'frontend', '.env')
+// Load environment variables from all possible locations
+const loadEnvFiles = () => {
+  const envPaths = [
+    // Root .env
+    path.join(__dirname, '.env'),
+    // Frontend .env
+    path.join(__dirname, 'frontend', '.env'),
+    // Backend .env
+    path.join(__dirname, 'backend', '.env'),
+    // Production paths
+    path.join(process.resourcesPath || __dirname, 'app', '.env'),
+    path.join(process.resourcesPath || __dirname, 'app/frontend', '.env'),
+    path.join(process.resourcesPath || __dirname, 'app/backend', '.env')
   ];
-  return paths.find(p => fs.existsSync(p));
-};
 
-const envPath = getEnvPath();
-if (envPath) {
-  console.log('Loading environment from:', envPath);
-  const envConfig = dotenv.parse(fs.readFileSync(envPath));
-  Object.entries(envConfig).forEach(([key, value]) => {
-    process.env[key] = value;
+  console.log('Looking for .env files in:');
+  envPaths.forEach(p => console.log('- ' + p));
+
+  // Load all existing .env files
+  envPaths.forEach(envPath => {
+    if (fs.existsSync(envPath)) {
+      console.log('Loading environment from:', envPath);
+      const envConfig = dotenv.parse(fs.readFileSync(envPath));
+      Object.entries(envConfig).forEach(([key, value]) => {
+        // Don't override existing env vars
+        if (!process.env[key]) {
+          process.env[key] = value;
+        }
+      });
+    }
   });
-} else {
-  console.error('No .env file found');
-}
+
+  // Log loaded environment variables (excluding sensitive data)
+  console.log('Loaded environment variables:', 
+    Object.keys(process.env)
+      .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD'))
+      .reduce((acc, key) => ({ ...acc, [key]: process.env[key] }), {})
+  );
+};
 
 // Set up protocol handler for serving local files
 app.whenReady().then(() => {
@@ -217,6 +237,9 @@ function createWindow() {
 
 // Main initialization
 app.whenReady().then(() => {
+  // Load environment variables
+  loadEnvFiles();
+
   // Set up protocol handler logging
   const logAssetAccess = (request, resolvedPath) => {
     console.log('\n[Asset Access Request]');
