@@ -1,5 +1,4 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const path = require('path');
 
 // Debug: Log available environment variables
 console.log('Environment variables in preload:', 
@@ -8,9 +7,29 @@ console.log('Environment variables in preload:',
     .reduce((acc, key) => ({ ...acc, [key]: process.env[key] }), {})
 );
 
-// Helper function for path resolution
-const resolvePath = (...parts) => {
-  return path.join(...parts).replace(/\\/g, '/');
+// Helper functions for path handling
+const normalizePath = (path) => path ? path.replace(/\\/g, '/').replace(/\/+/g, '/') : '';
+const joinPaths = (...parts) => normalizePath(parts.filter(Boolean).join('/'));
+
+// Get application paths safely
+const getAppPath = () => {
+    if (process.env.PORTABLE_EXECUTABLE_DIR) return process.env.PORTABLE_EXECUTABLE_DIR;
+    if (process.env.APPDATA) return process.env.APPDATA;
+    return process.cwd();
+};
+
+const getResourcesPath = () => {
+    // In development
+    if (process.env.NODE_ENV === 'development') return process.cwd();
+    // In production, use the app.asar path
+    const resourcesPath = process.resourcesPath;
+    if (!resourcesPath) return joinPaths(getAppPath(), 'resources');
+    
+    // Check if we're in the app.asar
+    if (resourcesPath.includes('app.asar')) {
+        return resourcesPath.split('app.asar')[0];
+    }
+    return resourcesPath;
 };
 
 // Get environment variables from the main process
@@ -28,13 +47,16 @@ const envVars = {
   PUBLIC_URL: process.env.PUBLIC_URL || '.',
   
   // Resource paths
-  APP_PATH: __dirname,
-  RESOURCES_PATH: process.resourcesPath || __dirname,
+  APP_PATH: normalizePath(getAppPath()),
+  RESOURCES_PATH: normalizePath(getResourcesPath()),
   
   // Debug info
   ENV_LOADED: JSON.stringify({
     hasGmailId: !!process.env.GMAIL_CLIENT_ID,
-    envKeys: Object.keys(process.env)
+    envKeys: Object.keys(process.env),
+    appPath: getAppPath(),
+    resourcesPath: getResourcesPath(),
+    isDev: process.env.NODE_ENV === 'development'
   })
 };
 
@@ -48,8 +70,10 @@ contextBridge.exposeInMainWorld(
     isElectron: true,
     // Path utilities
     utils: {
-      resolvePath: (...parts) => resolvePath(...parts),
-      joinPaths: (...parts) => parts.join('/').replace(/\/+/g, '/')
+      normalizePath: normalizePath,
+      joinPaths: joinPaths,
+      resolvePath: (...parts) => joinPaths(envVars.APP_PATH, ...parts),
+      resolveResourcePath: (...parts) => joinPaths(envVars.RESOURCES_PATH, ...parts)
     },
     // Email functionality
     sendEmail: (data) => {

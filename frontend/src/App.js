@@ -26,9 +26,12 @@ const getAssetPath = (assetPath) => {
     }
 
     // Use the exposed path utilities from preload
-    const mediaPath = window.electron.utils.joinPaths(
-      resourcesPath,
-      'app/frontend/build',
+    const mediaPath = window.electron.utils.resolveResourcePath(
+      'app.asar',
+      'frontend',
+      'build',
+      'static',
+      'media',
       cleanPath
     );
     
