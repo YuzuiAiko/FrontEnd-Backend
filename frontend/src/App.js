@@ -25,8 +25,12 @@ const getAssetPath = (assetPath) => {
       return assetPath;
     }
 
-    const mediaPath = path.join(resourcesPath, 'app/frontend/build', cleanPath)
-      .replace(/\\/g, '/');
+    // Use the exposed path utilities from preload
+    const mediaPath = window.electron.utils.joinPaths(
+      resourcesPath,
+      'app/frontend/build',
+      cleanPath
+    );
     
     console.log('Resolved media path:', mediaPath);
     return `file:///${mediaPath}`;

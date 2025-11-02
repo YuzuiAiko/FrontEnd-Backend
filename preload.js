@@ -1,4 +1,5 @@
-const { contextBridge, ipcRenderer, app } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
+const path = require('path');
 
 // Debug: Log available environment variables
 console.log('Environment variables in preload:', 
@@ -6,6 +7,11 @@ console.log('Environment variables in preload:',
     .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD'))
     .reduce((acc, key) => ({ ...acc, [key]: process.env[key] }), {})
 );
+
+// Helper function for path resolution
+const resolvePath = (...parts) => {
+  return path.join(...parts).replace(/\\/g, '/');
+};
 
 // Get environment variables from the main process
 const envVars = {
@@ -40,6 +46,11 @@ contextBridge.exposeInMainWorld(
     env: envVars,
     // Flag to indicate we're running in Electron
     isElectron: true,
+    // Path utilities
+    utils: {
+      resolvePath: (...parts) => resolvePath(...parts),
+      joinPaths: (...parts) => parts.join('/').replace(/\/+/g, '/')
+    },
     // Email functionality
     sendEmail: (data) => {
       return new Promise((resolve) => {
