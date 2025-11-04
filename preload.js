@@ -24,17 +24,22 @@ const getResourcesPath = () => {
   console.log('[preload] process.resourcesPath:', process.resourcesPath);
   console.log('[preload] __dirname:', typeof __dirname !== 'undefined' ? __dirname : 'undefined');
 
-  // Electron production: resourcesPath should be set
-  if (typeof process.resourcesPath === 'string' && process.resourcesPath.length > 0) {
-    return process.resourcesPath;
-  }
-  // Electron development: __dirname should be set
-  if (typeof __dirname === 'string' && __dirname.length > 0) {
-    return __dirname;
-  }
-  // If both are missing, log error and return null
-  console.error('Could not determine app resourcesPath');
-  return null;
+  // Try IPC to get resourcesPath from main process
+  return ipcRenderer.invoke('get-resources-path').then((resourcesPath) => {
+    if (resourcesPath) {
+      console.log('[preload] resourcesPath from IPC:', resourcesPath);
+      return resourcesPath;
+    }
+    // Fallbacks
+    if (typeof process.resourcesPath === 'string' && process.resourcesPath.length > 0) {
+      return process.resourcesPath;
+    }
+    if (typeof __dirname === 'string' && __dirname.length > 0) {
+      return __dirname;
+    }
+    console.error('Could not determine app resourcesPath');
+    return null;
+  });
 };
 
 // Get environment variables from the main process
@@ -53,7 +58,7 @@ const envVars = {
 
   // Resource paths
   APP_PATH: normalizePath(getAppPath()),
-  RESOURCES_PATH: getResourcesPath() ? normalizePath(getResourcesPath()) : '',
+  RESOURCES_PATH: '', // Will be set asynchronously below
   
   // Debug info
   ENV_LOADED: JSON.stringify({
@@ -67,47 +72,51 @@ const envVars = {
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
-contextBridge.exposeInMainWorld(
-  'electron', {
-    // Environment variables (only expose what's needed)
-    env: envVars,
-    // Flag to indicate we're running in Electron
-    isElectron: true,
-    // Path utilities
-    utils: {
-      normalizePath: normalizePath,
-      joinPaths: joinPaths,
-      resolvePath: (...parts) => joinPaths(envVars.APP_PATH, ...parts),
-      resolveResourcePath: (...parts) => joinPaths(envVars.RESOURCES_PATH, ...parts)
-    },
-    // Email functionality
-    sendEmail: (data) => {
-      return new Promise((resolve) => {
-        ipcRenderer.send('send-email', data);
-        ipcRenderer.once('email-sent', (_, result) => {
-          resolve(result);
+// Expose protected methods that allow the renderer process to use
+getResourcesPath().then((resourcesPath) => {
+  envVars.RESOURCES_PATH = resourcesPath ? normalizePath(resourcesPath) : '';
+  contextBridge.exposeInMainWorld(
+    'electron', {
+      // Environment variables (only expose what's needed)
+      env: envVars,
+      // Flag to indicate we're running in Electron
+      isElectron: true,
+      // Path utilities
+      utils: {
+        normalizePath: normalizePath,
+        joinPaths: joinPaths,
+        resolvePath: (...parts) => joinPaths(envVars.APP_PATH, ...parts),
+        resolveResourcePath: (...parts) => joinPaths(envVars.RESOURCES_PATH, ...parts)
+      },
+      // Email functionality
+      sendEmail: (data) => {
+        return new Promise((resolve) => {
+          ipcRenderer.send('send-email', data);
+          ipcRenderer.once('email-sent', (_, result) => {
+            resolve(result);
+          });
         });
-      });
-    },
+      },
 
-    // Phishing detection
-    checkPhishing: (data) => {
-      return new Promise((resolve) => {
-        ipcRenderer.send('check-phishing', data);
-        ipcRenderer.once('phishing-result', (_, result) => {
-          resolve(result);
+      // Phishing detection
+      checkPhishing: (data) => {
+        return new Promise((resolve) => {
+          ipcRenderer.send('check-phishing', data);
+          ipcRenderer.once('phishing-result', (_, result) => {
+            resolve(result);
+          });
         });
-      });
-    },
+      },
 
-    // Window management
-    windowControls: {
-      minimize: () => ipcRenderer.send('minimize-to-tray'),
-      maximize: () => ipcRenderer.send('maximize-window'),
-      close: () => ipcRenderer.send('close-window'),
-    },
+      // Window management
+      windowControls: {
+        minimize: () => ipcRenderer.send('minimize-to-tray'),
+        maximize: () => ipcRenderer.send('maximize-window'),
+        close: () => ipcRenderer.send('close-window'),
+      },
 
-    // App info
-    getAppVersion: () => ipcRenderer.invoke('get-app-version'),
-  }
-);
+      // App info
+      getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+    }
+  );
+});

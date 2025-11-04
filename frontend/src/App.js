@@ -34,29 +34,7 @@ const getAssetPath = (assetPath) => {
   console.log('Web browser context, using original path');
   return assetPath;
 };
-const getAssetPath = (assetPath) => {
-  console.log('\n[Asset Path Resolution]');
-  console.log('Input path:', assetPath);
-
-  const cleanPath = assetPath.replace(/^\.\//, '');
-
-  if (window.electron) {
-    const resourcesPath = window.electron.env.RESOURCES_PATH;
-    console.log('Resources path:', resourcesPath);
-
-    if (!resourcesPath) {
-      console.error('Missing resourcesPath, falling back to default asset path');
-      return assetPath;
-    }
-
-    const mediaPath = window.electron.utils.resolveResourcePath(cleanPath);
-    console.log('Resolved media path:', mediaPath);
-    return `file://${mediaPath}`;
-  }
-
-  console.log('Web browser context, using original path');
-  return assetPath;
-};
+// The second declaration of getAssetPath has been removed to avoid duplication.
 
 // Import images
 const GmailLogo = getAssetPath(require("./assets/Gmail_logo.png"));

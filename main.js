@@ -88,6 +88,10 @@ let windowState = null;
 
 // Set up IPC channels
 function setupIPC() {
+  // IPC handler to expose resourcesPath
+  ipcMain.handle('get-resources-path', () => {
+    return process.resourcesPath || null;
+  });
   // Email handling
   ipcMain.on('send-email', async (event, data) => {
     // Handle email sending
