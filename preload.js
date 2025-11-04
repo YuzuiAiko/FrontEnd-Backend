@@ -19,36 +19,41 @@ const getAppPath = () => {
 };
 
 const getResourcesPath = () => {
-  // Electron always sets process.resourcesPath in production
+  // Diagnostics
+  console.log('[preload] process.type:', process.type);
+  console.log('[preload] process.resourcesPath:', process.resourcesPath);
+  console.log('[preload] __dirname:', typeof __dirname !== 'undefined' ? __dirname : 'undefined');
+
+  // Electron production: resourcesPath should be set
   if (typeof process.resourcesPath === 'string' && process.resourcesPath.length > 0) {
     return process.resourcesPath;
   }
-  // In development, __dirname is available
+  // Electron development: __dirname should be set
   if (typeof __dirname === 'string' && __dirname.length > 0) {
     return __dirname;
   }
-  // Fallback: log error and return '.'
+  // If both are missing, log error and return null
   console.error('Could not determine app resourcesPath');
-  return '.';
+  return null;
 };
 
 // Get environment variables from the main process
 const envVars = {
   // OAuth Configuration
   GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID || '',
-  
+
   // Frontend Configuration
-  REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL || 'https://localhost:5002',
-  FRONTEND_REDIRECT_URL: process.env.FRONTEND_REDIRECT_URL || 'http://localhost:5003',
-  REACT_APP_USE_GROUP_LOGO: process.env.REACT_APP_USE_GROUP_LOGO || 'true',
-  
+  REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL || '',
+  FRONTEND_REDIRECT_URL: process.env.FRONTEND_REDIRECT_URL || '',
+  REACT_APP_USE_GROUP_LOGO: process.env.REACT_APP_USE_GROUP_LOGO || 'false',
+
   // Environment Configuration
   NODE_ENV: process.env.NODE_ENV || 'production',
   PUBLIC_URL: process.env.PUBLIC_URL || '.',
-  
+
   // Resource paths
   APP_PATH: normalizePath(getAppPath()),
-  RESOURCES_PATH: normalizePath(getResourcesPath()),
+  RESOURCES_PATH: getResourcesPath() ? normalizePath(getResourcesPath()) : '',
   
   // Debug info
   ENV_LOADED: JSON.stringify({

@@ -11,33 +11,49 @@ import ErrorBoundary from "./components/ErrorBoundary";
 const getAssetPath = (assetPath) => {
   console.log('\n[Asset Path Resolution]');
   console.log('Input path:', assetPath);
-  
-  // Clean up the path - remove leading ./ if present
+
   const cleanPath = assetPath.replace(/^\.\//, '');
-  
-  // In Electron context
+
   if (window.electron) {
     const resourcesPath = window.electron.env.RESOURCES_PATH;
     console.log('Resources path:', resourcesPath);
-    
-    if (!resourcesPath) {
-      console.error('Resources path not available');
+
+    if (!resourcesPath || resourcesPath === '.') {
+      console.error('Invalid or missing resourcesPath');
       return assetPath;
     }
 
-    // Use the exposed path utilities from preload
     const mediaPath = window.electron.utils.resolveResourcePath(
-      'app.asar',
-      'frontend',
-      'build',
       cleanPath
     );
-    
+
     console.log('Resolved media path:', mediaPath);
-    return `file:///${mediaPath}`;
+    return `file://${mediaPath}`;
   }
-  
-  // In web browser
+
+  console.log('Web browser context, using original path');
+  return assetPath;
+};
+const getAssetPath = (assetPath) => {
+  console.log('\n[Asset Path Resolution]');
+  console.log('Input path:', assetPath);
+
+  const cleanPath = assetPath.replace(/^\.\//, '');
+
+  if (window.electron) {
+    const resourcesPath = window.electron.env.RESOURCES_PATH;
+    console.log('Resources path:', resourcesPath);
+
+    if (!resourcesPath) {
+      console.error('Missing resourcesPath, falling back to default asset path');
+      return assetPath;
+    }
+
+    const mediaPath = window.electron.utils.resolveResourcePath(cleanPath);
+    console.log('Resolved media path:', mediaPath);
+    return `file://${mediaPath}`;
+  }
+
   console.log('Web browser context, using original path');
   return assetPath;
 };
