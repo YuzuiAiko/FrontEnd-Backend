@@ -23,7 +23,12 @@ const getAssetPath = (assetPath) => {
       return assetPath;
     }
 
-    const mediaPath = window.electron.utils.resolveResourcePath(
+    // Assets are packaged in app/frontend/build/static/media
+    const mediaPath = window.electron.utils.joinPaths(
+      resourcesPath,
+      'app',
+      'frontend',
+      'build',
       cleanPath
     );
 
