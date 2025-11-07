@@ -15,6 +15,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
   const [currentPage, setCurrentPage] = useState(1); // Tracks the current page for pagination
   const [emailsPerPage] = useState(10); // Defines how many emails to show per page
   const [showCompose, setShowCompose] = useState(false); // Toggles the compose email modal
+  const [confirmExitOpen, setConfirmExitOpen] = useState(false);
   const [recipient, setRecipient] = useState(""); // Stores the recipient's email
   const [subject, setSubject] = useState(""); // Stores the subject of the email
   const [body, setBody] = useState(""); // Stores the body of the email
@@ -239,6 +240,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
             />
             <h1 className="top-bar-title">ImfrisivMail</h1>
             {demoMode && (
+              <>
               <button
                 style={{
                   marginLeft: 12,
@@ -249,29 +251,40 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                   borderRadius: 6,
                   cursor: 'pointer'
                 }}
-                onClick={() => {
-                  // Show a confirmation dialog before exiting demo
-                  const ok = typeof window !== 'undefined' && window.confirm ? window.confirm('Exit demo mode and return to the login screen?') : true;
-                  if (!ok) return;
-                  try {
-                    if (typeof window !== 'undefined' && window.localStorage) {
-                      window.localStorage.removeItem('demo');
-                    }
-                  } catch (e) {
-                    console.warn('Failed to clear demo flag', e);
-                  }
-                  window.location.href = '/';
-                }}
+                onClick={() => setConfirmExitOpen(true)}
               >
                 Exit demo
               </button>
+              {confirmExitOpen && (
+                <div style={{ position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+                  <div style={{ background: 'white', padding: 20, borderRadius: 8, maxWidth: 480, width: '90%' }}>
+                    <h3 style={{ marginTop: 0 }}>Exit demo mode?</h3>
+                    <p>Are you sure you want to exit demo mode and return to the login screen?</p>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <button onClick={() => setConfirmExitOpen(false)} style={{ padding: '6px 10px' }}>Cancel</button>
+                      <button onClick={() => {
+                        try {
+                          if (typeof window !== 'undefined' && window.localStorage) {
+                            window.localStorage.removeItem('demo');
+                            window.localStorage.setItem('demoExited','1');
+                          }
+                        } catch (e) {
+                          console.warn('Failed to clear demo flag', e);
+                        }
+                        window.location.href = '/';
+                      }} style={{ padding: '6px 10px', background: '#d9534f', color: 'white', border: 'none', borderRadius: 4 }}>Exit demo</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              </>
             )}
           </div>
         </header>
 
         {!selectedEmail ? (
           <>
-            <header class="second-header-bar">
+            <header className="second-header-bar">
               <div className="search-bar">
                 <input
                   type="text"

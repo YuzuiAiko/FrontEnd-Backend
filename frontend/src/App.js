@@ -19,8 +19,21 @@ function App() {
   const [password, setPassword] = useState(""); // User's password input
   const [showPassword, setShowPassword] = useState(false); // Toggle to show/hide password
   const [loginError, setLoginError] = useState(null); // Error message for login issues
+  const [showDemoExitedToast, setShowDemoExitedToast] = useState(false);
 
   // useEffect to initialize Gmail API client when the app loads
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('demoExited') === '1') {
+        window.localStorage.removeItem('demoExited');
+        setShowDemoExitedToast(true);
+        setTimeout(() => setShowDemoExitedToast(false), 4000);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     const start = () => {
       gapi.client.init({
@@ -80,6 +93,11 @@ function App() {
           path="/"
           element={
             <div className="container">
+              {showDemoExitedToast && (
+                <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 60 }}>
+                  <div style={{ background: '#343a40', color: 'white', padding: '8px 12px', borderRadius: 6 }}>Exited demo mode</div>
+                </div>
+              )}
               <div className="form-section">
                     {/* Demo Mode badge (visible always on login screen) */}
                     <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 20 }}>
