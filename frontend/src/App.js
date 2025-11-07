@@ -81,6 +81,10 @@ function App() {
           element={
             <div className="container">
               <div className="form-section">
+                    {/* Demo Mode badge (visible always on login screen) */}
+                    <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 20 }}>
+                      <div style={{ background: '#d9534f', color: 'white', padding: '6px 10px', borderRadius: 6, fontWeight: 600, fontSize: '12px' }}>Demo Mode</div>
+                    </div>
                 <img src={logo} alt="App Logo" className="group-logo" />
                 <h1 className="title">{appName}</h1>
                 <p className="subtitle">Welcome</p>
@@ -122,6 +126,10 @@ function App() {
                   {loginError && <p className="error-message">{loginError}</p>}
                 </div>
                 <p className="or-text">or continue with</p>
+                {/* Enter Demo Button */}
+                <div style={{ marginTop: 8 }}>
+                  <a href="/home?demo=1" className="button" style={{ backgroundColor: '#6c757d', border: 'none', color: 'white', textDecoration: 'none' }}>Enter demo</a>
+                </div>
                 <div className="account-circles">
                   {/* Gmail login */}
                   <div className="account-circle" onClick={handleGmailLogin}>
