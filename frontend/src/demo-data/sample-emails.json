@@ -1,0 +1,136 @@
+{
+  "emails": [
+    {
+      "id": "1",
+      "sender": "security@bankofacme.com",
+      "to": "participant@example.com",
+      "subject": "Important: Verify your account immediately",
+      "body": "<p>Dear customer, please <a href=\"http://bankofacme.example/verify\">verify your account</a> within 24 hours or access will be restricted.</p>",
+      "date": "2025-10-01T08:23:00Z",
+      "classification": ["Spam"],
+      "label": "phish",
+      "model_score": 0.96
+    },
+    {
+      "id": "2",
+      "sender": "alice@trustedcorp.com",
+      "to": "participant@example.com",
+      "subject": "Quarterly report attached",
+      "body": "<p>Hi — the quarterly report is attached. Let me know if you have questions.</p>",
+      "date": "2025-09-20T14:10:00Z",
+      "classification": ["Inbox"],
+      "label": "benign",
+      "model_score": 0.02
+    },
+    {
+      "id": "3",
+      "sender": "no-reply@social.example",
+      "to": "participant@example.com",
+      "subject": "Reset your password",
+      "body": "<p>We received a request to reset your password. If this was you, click <a href=\"http://social.example/reset\">here</a>.</p>",
+      "date": "2025-09-30T09:00:00Z",
+      "classification": ["Important"],
+      "label": "phish",
+      "model_score": 0.84
+    },
+    {
+      "id": "4",
+      "sender": "events@community.org",
+      "to": "participant@example.com",
+      "subject": "You're invited: Community meetup",
+      "body": "<p>Join us for the neighborhood meetup this Saturday at 10am.</p>",
+      "date": "2025-08-15T12:30:00Z",
+      "classification": ["Inbox"],
+      "label": "benign",
+      "model_score": 0.07
+    },
+    {
+      "id": "5",
+      "sender": "offers@unknown-sale.example",
+      "to": "participant@example.com",
+      "subject": "You won a prize! Claim now",
+      "body": "<p>Click to claim your prize: <a href=\"http://scam.example/claim\">Claim</a></p>",
+      "date": "2025-07-11T07:45:00Z",
+      "classification": ["Spam"],
+      "label": "phish",
+      "model_score": 0.99
+    },
+    {
+      "id": "6",
+      "sender": "team@workplace.com",
+      "to": "participant@example.com",
+      "subject": "Meeting notes",
+      "body": "<p>Attached are the notes from today's meeting.</p>",
+      "date": "2025-09-25T16:00:00Z",
+      "classification": ["Inbox"],
+      "label": "benign",
+      "model_score": 0.05
+    },
+    {
+      "id": "7",
+      "sender": "admin@service.example",
+      "to": "participant@example.com",
+      "subject": "Unusual sign-in detected",
+      "body": "<p>We detected a sign-in from a new device. If this wasn't you, reset your password <a href=\"http://service.example/reset\">here</a>.</p>",
+      "date": "2025-09-28T21:20:00Z",
+      "classification": ["Important"],
+      "label": "phish",
+      "model_score": 0.78
+    },
+    {
+      "id": "8",
+      "sender": "newsletter@tech.example",
+      "to": "participant@example.com",
+      "subject": "This week's highlights",
+      "body": "<p>Here are this week's top stories in tech.</p>",
+      "date": "2025-09-18T11:00:00Z",
+      "classification": ["Inbox"],
+      "label": "benign",
+      "model_score": 0.11
+    },
+    {
+      "id": "9",
+      "sender": "billing@subscriptions.example",
+      "to": "participant@example.com",
+      "subject": "Invoice available for your account",
+      "body": "<p>Your invoice for September is now available.</p>",
+      "date": "2025-09-01T08:00:00Z",
+      "classification": ["Inbox"],
+      "label": "benign",
+      "model_score": 0.12
+    },
+    {
+      "id": "10",
+      "sender": "support@trustedcorp.com",
+      "to": "participant@example.com",
+      "subject": "Re: Your support ticket #1234",
+      "body": "<p>Thanks for contacting support. We'll get back to you shortly.</p>",
+      "date": "2025-09-05T10:30:00Z",
+      "classification": ["Inbox"],
+      "label": "benign",
+      "model_score": 0.03
+    },
+    {
+      "id": "11",
+      "sender": "security-alert@provider.example",
+      "to": "participant@example.com",
+      "subject": "Action required: Suspicious activity",
+      "body": "<p>We detected suspicious activity. Verify here: <a href=\"http://provider.example/verify\">verify</a></p>",
+      "date": "2025-09-29T02:30:00Z",
+      "classification": ["Spam"],
+      "label": "phish",
+      "model_score": 0.88
+    },
+    {
+      "id": "12",
+      "sender": "friend@example.org",
+      "to": "participant@example.com",
+      "subject": "Weekend plans",
+      "body": "<p>Do you want to go hiking this weekend?</p>",
+      "date": "2025-09-27T17:45:00Z",
+      "classification": ["Inbox"],
+      "label": "benign",
+      "model_score": 0.01
+    }
+  ]
+}
