@@ -1,7 +1,6 @@
 import React, { act } from 'react';
 import { render, screen } from '@testing-library/react';
 import Homepage from '../components/Homepage';
-import { MemoryRouter } from 'react-router-dom';
 import demoData from '../demo-data/sample-emails.json';
 
 test('renders demo inbox with at least one email', async () => {
