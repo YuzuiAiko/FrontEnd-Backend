@@ -8,6 +8,10 @@ import GmailLogo from "./assets/Gmail_logo.png"; // Gmail logo for the UI
 import GroupLogo from "./assets/F (1).png"; // Application group logo
 import DefaultLogo from "./assets/imfrisiv.png"; // Default logo
 import Homepage from "./components/Homepage"; // Homepage component
+import demoData from "./demo-data/sample-emails.json";
+
+// Demo mode detection: env var or ?demo=1
+const isDemo = (process.env.REACT_APP_DEMO === 'true') || new URLSearchParams(window.location.search).get('demo') === '1';
 
 function App() {
   // State variables for managing email, password, and login state
@@ -128,7 +132,7 @@ function App() {
             </div>
           }
         />
-        <Route path="/home" element={<Homepage />} />
+  <Route path="/home" element={<Homepage demoMode={isDemo} demoEmails={demoData.emails} />} />
       </Routes>
     </Router>
   );

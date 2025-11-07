@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import DOMPurify from "dompurify"; // To sanitize HTML and prevent XSS attacks
 import "./homepage.css"; // Importing styles for the component
 
-const Homepage = ({ userEmail }) => {
+const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
   // State hooks for managing various aspects of the component
   const [emails, setEmails] = useState([]); // Stores the fetched emails
@@ -25,9 +25,28 @@ const Homepage = ({ userEmail }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const toggleDarkMode = () => setIsDarkMode((dm) => !dm);
 
-  // Fetch emails from the server
+  // Fetch emails from the server or load demo emails when demoMode is enabled
   const fetchEmails = useCallback(() => {
-  fetch(`${backendUrl}/auth/gmail/emails`, {
+    if (demoMode) {
+      try {
+        const formatted = demoEmails.map((email) => ({
+          ...email,
+          classification: Array.isArray(email.classification)
+            ? email.classification
+            : [email.classification],
+        }));
+        setEmails(formatted);
+        setFilteredEmails(formatted);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to load demo emails', err);
+        setError('Failed to load demo emails.');
+        setLoading(false);
+      }
+      return;
+    }
+
+    fetch(`${backendUrl}/auth/gmail/emails`, {
       method: "GET",
       credentials: "include",
     })
@@ -52,13 +71,16 @@ const Homepage = ({ userEmail }) => {
         setError("Failed to load emails.");
         setLoading(false);
       });
-  }, []);
+  }, [demoMode, demoEmails]);
 
   useEffect(() => {
     fetchEmails();
-    const id = setInterval(fetchEmails, 30000);
-    return () => clearInterval(id);
-  }, [fetchEmails]);
+    if (!demoMode) {
+      const id = setInterval(fetchEmails, 30000);
+      return () => clearInterval(id);
+    }
+    return undefined;
+  }, [fetchEmails, demoMode]);
 
   // Merge sort algorithm for sorting emails
   const mergeSort = useCallback((arr, sortBy) => {
