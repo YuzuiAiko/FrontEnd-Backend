@@ -238,6 +238,31 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
               className="top-bar-logo" 
             />
             <h1 className="top-bar-title">ImfrisivMail</h1>
+            {demoMode && (
+              <button
+                style={{
+                  marginLeft: 12,
+                  background: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  try {
+                    if (typeof window !== 'undefined' && window.localStorage) {
+                      window.localStorage.removeItem('demo');
+                    }
+                  } catch (e) {
+                    console.warn('Failed to clear demo flag', e);
+                  }
+                  window.location.href = '/';
+                }}
+              >
+                Exit demo
+              </button>
+            )}
           </div>
         </header>
 

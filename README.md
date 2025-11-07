@@ -94,6 +94,33 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
 
 4. Explore features like email categorization, sending emails, and more.
 
+## Demo Mode (Fast frontend-only demo)
+
+If you want to run a quick demo for research participants without setting up OAuth or the backend, the project includes a frontend-only demo mode that uses pre-selected sample emails.
+
+How to run (PowerShell, recommended):
+
+```powershell
+# from repo root
+.\start_demo.ps1
+```
+
+How it works:
+- The demo frontend loads sample emails from `frontend/src/demo-data/sample-emails.json` and does not call backend endpoints.
+- Use the "Enter demo" button on the login screen (or open `http://localhost:5003/?demo=1`) to enter demo mode. The button sets a localStorage flag so demo mode persists across pages.
+- In the inbox, a red "Demo Mode — sample data" badge will be visible. Use the "Exit demo" button in the top bar to clear demo mode and return to the login screen.
+
+Alternate: start dev server with npm script (cmd.exe)
+
+```cmd
+cd frontend
+npm run start:demo
+```
+
+Notes:
+- The frontend demo is the fastest way to show the UI and classification labels to participants. It does not exercise the backend classifier or authentication flows.
+- If you later want the frontend to contact the real classifier, you can add a small demo endpoint to the backend and point the frontend at it.
+
 ## Authentication Flow: Frontend, Backend, and Login Methods
 
 The authentication process between the frontend and backend is based on OAuth2 for both Gmail and Outlook. Here’s how the flow works:
