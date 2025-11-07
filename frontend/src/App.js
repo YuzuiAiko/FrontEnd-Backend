@@ -11,7 +11,7 @@ import Homepage from "./components/Homepage"; // Homepage component
 import demoData from "./demo-data/sample-emails.json";
 
 // Demo mode detection: env var or ?demo=1
-const isDemo = (process.env.REACT_APP_DEMO === 'true') || new URLSearchParams(window.location.search).get('demo') === '1';
+const isDemo = (process.env.REACT_APP_DEMO === 'true') || new URLSearchParams(window.location.search).get('demo') === '1' || (typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('demo') === '1');
 
 function App() {
   // State variables for managing email, password, and login state
@@ -128,7 +128,23 @@ function App() {
                 <p className="or-text">or continue with</p>
                 {/* Enter Demo Button */}
                 <div style={{ marginTop: 8 }}>
-                  <a href="/home?demo=1" className="button" style={{ backgroundColor: '#6c757d', border: 'none', color: 'white', textDecoration: 'none' }}>Enter demo</a>
+                  <button
+                    className="button"
+                    style={{ backgroundColor: '#6c757d', border: 'none', color: 'white' }}
+                    onClick={() => {
+                      try {
+                        if (typeof window !== 'undefined' && window.localStorage) {
+                          window.localStorage.setItem('demo', '1');
+                        }
+                      } catch (e) {
+                        console.warn('Failed to set demo flag in localStorage', e);
+                      }
+                      // navigate to home (demo param kept for compatibility)
+                      window.location.href = '/home?demo=1';
+                    }}
+                  >
+                    Enter demo
+                  </button>
                 </div>
                 <div className="account-circles">
                   {/* Gmail login */}

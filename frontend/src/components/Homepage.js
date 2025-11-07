@@ -198,6 +198,11 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
 
   return (
     <div className={`homepage-container ${isDarkMode ? "dark-mode" : ""}`}>
+      {demoMode && (
+        <div style={{ position: 'fixed', top: 12, right: 12, zIndex: 50 }}>
+          <div style={{ background: '#d9534f', color: 'white', padding: '6px 10px', borderRadius: 6, fontWeight: 600, fontSize: '12px' }}>Demo Mode — sample data</div>
+        </div>
+      )}
       {/* Sidebar */}
       <div className={`sidebar ${sidebarVisible ? "visible" : ""}`}>
         <ul>
