@@ -2,6 +2,7 @@
   "name": "sifri-mail",
   "version": "0.1.0",
   "private": true,
+  "homepage": "./",
   "dependencies": {
     "@azure/msal-browser": "^2.27.0",
     "@testing-library/jest-dom": "^5.17.0",
@@ -20,7 +21,11 @@
   },
   "scripts": {
   "start": "set HTTPS=true&&set PORT=5003&&set SSL_CRT_FILE=ssl/localhost-cert.pem&&set SSL_KEY_FILE=ssl/localhost-key.pem&&react-scripts start",
-    "build": "react-scripts build",
+    "build": "set PUBLIC_URL=.&&react-scripts build",
+    "electron": "electron ../../main.js",
+    "electron:dev": "concurrently \"SET BROWSER=none && SET HTTPS=false && SET PORT=5002 && npm start\" \"wait-on http://localhost:5002 && electron ../../main.js\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:dist": "electron-builder -mwl",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "install:force": "npm install --force",
@@ -43,5 +48,11 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron": "^38.3.0",
+    "electron-builder": "^26.0.12",
+    "wait-on": "^9.0.1"
   }
 }

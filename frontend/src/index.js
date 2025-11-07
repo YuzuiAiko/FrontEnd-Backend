@@ -14,8 +14,17 @@ root.render(
   </React.StrictMode>
 );
 
-// Register the service worker
-serviceWorkerRegistration.register();
+// Register service worker with different strategies for web and desktop
+const isElectron = window.process && window.process.type === 'renderer';
+if (isElectron) {
+  // In Electron, only register if we're not using file:// protocol (e.g., in dev mode)
+  if (!/^file:/.test(window.location.href)) {
+    serviceWorkerRegistration.register();
+  }
+} else {
+  // In web browser, always register
+  serviceWorkerRegistration.register();
+}
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

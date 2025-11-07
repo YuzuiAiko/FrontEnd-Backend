@@ -19,6 +19,12 @@ const isLocalhost = Boolean(
 );
 
 export function register(config) {
+  // Skip service worker registration in Electron
+  if (window.electron) {
+    console.log('Running in Electron - skipping service worker registration');
+    return;
+  }
+
   if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW.
     const publicUrl = new URL(process.env.PUBLIC_URL, window.location.href);

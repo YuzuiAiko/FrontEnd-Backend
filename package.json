@@ -1,4 +1,17 @@
 {
+  "name": "sifri-mail",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "electron:dev": "electron .",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm install",
+    "build": "npm run build:frontend && npm run build:backend",
+    "package:win": "electron-builder build --win",
+    "dist": "npm run build && npm run package:win"
+  },
   "dependencies": {
     "@azure/msal-browser": "^3.30.0",
     "@azure/msal-react": "^2.2.0",
@@ -24,9 +37,85 @@
     "@eslint/js": "^9.15.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",
+    "concurrently": "^9.2.1",
+    "electron": "^33.2.1",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.15.0",
     "eslint-plugin-react": "^7.37.2",
     "globals": "^15.12.0",
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+    "wait-on": "^9.0.1"
+  },
+  "build": {
+    "appId": "com.imfrisivmail.app",
+    "productName": "Imfrisiv Mail",
+    "files": [
+      "frontend/build/**/*",
+      ".env",
+      "frontend/.env",
+      "backend/.env",
+      "backend/**/*",
+      "!backend/node_modules/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "main.js",
+      "preload.js",
+      "window-state.js"
+    ],
+    "extraResources": [
+      {
+        "from": "frontend/build/static/media",
+        "to": "app/frontend/build/static/media",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "frontend/.env",
+        "to": "app/frontend/.env"
+      }
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "asarUnpack": [
+      "frontend/build/static/media/*"
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }

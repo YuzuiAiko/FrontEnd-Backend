@@ -1,13 +1,51 @@
 // filepath: frontend/src/App.js
-import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"; // React Router for navigation
-import { gapi } from "gapi-script"; // Google API client for Gmail authentication
-import axios from "axios"; // HTTP client for backend communication
-import "./App.css"; // Import application styles
-import GmailLogo from "./assets/Gmail_logo.png"; // Gmail logo for the UI
-import GroupLogo from "./assets/F (1).png"; // Application group logo
-import DefaultLogo from "./assets/imfrisiv.png"; // Default logo
-import Homepage from "./components/Homepage"; // Homepage component
+import React, { useState, useEffect, Suspense } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { gapi } from "gapi-script";
+import axios from "axios";
+import "./App.css";
+import Homepage from "./components/Homepage";
+import ErrorBoundary from "./components/ErrorBoundary";
+
+// Import images and get their actual paths in the build
+const getAssetPath = (assetPath) => {
+  console.log('\n[Asset Path Resolution]');
+  console.log('Input path:', assetPath);
+
+  const cleanPath = assetPath.replace(/^\.\//, '');
+
+  if (window.electron) {
+    const resourcesPath = window.electron.env.RESOURCES_PATH;
+    console.log('Resources path:', resourcesPath);
+
+    if (!resourcesPath || resourcesPath === '.') {
+      console.error('Invalid or missing resourcesPath');
+      return assetPath;
+    }
+
+    // Assets are packaged in app/frontend/build/static/media
+    const mediaPath = window.electron.utils.joinPaths(
+      resourcesPath,
+      'app',
+      'frontend',
+      'build',
+      cleanPath
+    );
+
+    console.log('Resolved media path:', mediaPath);
+    return `file://${mediaPath}`;
+  }
+
+  console.log('Web browser context, using original path');
+  return assetPath;
+};
+// The second declaration of getAssetPath has been removed to avoid duplication.
+
+// Import images
+const GmailLogo = getAssetPath(require("./assets/Gmail_logo.png"));
+const GroupLogo = getAssetPath(require("./assets/F (1).png"));
+const DefaultLogo = getAssetPath(require("./assets/imfrisiv.png"));
+const BackgroundImage = getAssetPath(require("./assets/images/login-background-laptopwoman.jpg"));
 
 function App() {
   // State variables for managing email, password, and login state
@@ -19,8 +57,17 @@ function App() {
   // useEffect to initialize Gmail API client when the app loads
   useEffect(() => {
     const start = () => {
+      // Get environment variables from electron bridge if available, otherwise use process.env
+      const clientId = window.electron?.env?.GMAIL_CLIENT_ID || process.env.GMAIL_CLIENT_ID;
+      const redirectUrl = window.electron?.env?.FRONTEND_REDIRECT_URL || process.env.FRONTEND_REDIRECT_URL;
+      
+      if (!clientId) {
+        console.error('Gmail client ID not found in environment variables');
+        return;
+      }
+
       gapi.client.init({
-        clientId: process.env.REACT_APP_GMAIL_CLIENT_ID, // Gmail API Client ID from environment variables
+        clientId: clientId,
         scope: "email", // Gmail API scope
         discoveryDocs: [
           "https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest", // Gmail API discovery document
@@ -69,67 +116,123 @@ function App() {
   const logo = useGroupLogo ? GroupLogo : DefaultLogo;
   const appName = useGroupLogo ? "SiFri Mail" : "ImfrisivMail";
 
+  // Debug: Log image loading attempts and asset loading
+  useEffect(() => {
+    console.log('Attempting to load background image:', BackgroundImage);
+    console.log('Environment:', {
+      isElectron: window.electron !== undefined,
+      publicUrl: process.env.PUBLIC_URL,
+      nodeEnv: process.env.NODE_ENV
+    });
+  }, []);
+
+  // Debug: Log image load errors
+  const handleImageError = (e) => {
+    console.error('Image failed to load:', e.target.src);
+  };
+
   return (
     <Router>
       <Routes>
         <Route
           path="/"
           element={
-            <div className="container">
-              <div className="form-section">
-                <img src={logo} alt="App Logo" className="group-logo" />
-                <h1 className="title">{appName}</h1>
-                <p className="subtitle">Welcome</p>
-                <div className="form-group">
-                  <label htmlFor="email" className="label">
-                    Email
-                  </label>
+          <div className="container">
+            {/* Separate div for background with fallback color */}
+            <div 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: '#3b1c32', // Fallback color
+                backgroundImage: BackgroundImage ? `url(${BackgroundImage})` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                zIndex: 0
+              }}
+            >
+              {/* Always show debug info in a corner */}
+              <div style={{ 
+                position: 'fixed', 
+                bottom: 10, 
+                right: 10, 
+                color: 'white', 
+                backgroundColor: 'rgba(0,0,0,0.7)', 
+                padding: 10,
+                borderRadius: 5,
+                fontSize: '12px',
+                maxWidth: '400px',
+                wordBreak: 'break-all'
+              }}>
+                <div>Image Path: {BackgroundImage || 'Not loaded'}</div>
+                <div>Electron: {window.electron ? 'Yes' : 'No'}</div>
+                <div>Build Dir: {window.electron?.env?.BUILD_DIR || 'Not available'}</div>
+                <div>Node Env: {process.env.NODE_ENV}</div>
+                <div>BackgroundImage src: {BackgroundImage}</div>
+                <div>Logo src: {logo}</div>
+                <div>GmailLogo src: {GmailLogo}</div>
+                <div>GroupLogo src: {GroupLogo}</div>
+                <div>DefaultLogo src: {DefaultLogo}</div>
+                <div style={{color: 'red', fontWeight: 'bold', marginTop: '10px'}}>React Fallback: If you see this, the app is rendering.</div>
+              </div>
+            </div>
+            <div className="form-section">
+              <img src={logo} alt="App Logo" className="group-logo" onError={handleImageError} />
+              <h1 className="title">{appName}</h1>
+              <p className="subtitle">Welcome</p>
+              <div className="form-group">
+                <label htmlFor="email" className="label">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  className="input"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <label htmlFor="password" className="label">
+                  Password
+                </label>
+                <div className="password-container">
                   <input
-                    type="email"
-                    id="email"
+                    type={showPassword ? "text" : "password"}
+                    id="password"
                     className="input"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
-                  <label htmlFor="password" className="label">
-                    Password
-                  </label>
-                  <div className="password-container">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      id="password"
-                      className="input"
-                      placeholder="Enter password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="eye-icon"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                  <button className="button" onClick={handleEmailLogin}>
-                    Log in
+                  <button
+                    type="button"
+                    className="eye-icon"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? "Hide" : "Show"}
                   </button>
-                  {loginError && <p className="error-message">{loginError}</p>}
                 </div>
-                <p className="or-text">or continue with</p>
-                <div className="account-circles">
-                  {/* Gmail login */}
-                  <div className="account-circle" onClick={handleGmailLogin}>
-                    <img src={GmailLogo} alt="Gmail" className="account-icon" />
-                  </div>
+                <button className="button" onClick={handleEmailLogin}>
+                  Log in
+                </button>
+                {loginError && <p className="error-message">{loginError}</p>}
+              </div>
+              <p className="or-text">or continue with</p>
+              <div className="account-circles">
+                {/* Gmail login */}
+                <div className="account-circle" onClick={handleGmailLogin}>
+                  <img src={GmailLogo} alt="Gmail" className="account-icon" onError={handleImageError} />
                 </div>
               </div>
             </div>
-          }
-        />
-        <Route path="/home" element={<Homepage />} />
-      </Routes>
+          </div>
+        }
+      />
+      <Route path="/home" element={<Homepage />} />
+    </Routes>
     </Router>
   );
 }
