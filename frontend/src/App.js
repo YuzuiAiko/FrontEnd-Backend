@@ -9,10 +9,8 @@ import GroupLogo from "./assets/F (1).png"; // Application group logo
 import DefaultLogo from "./assets/imfrisiv.png"; // Default logo
 import Homepage from "./components/Homepage"; // Homepage component
 import demoData from "./demo-data/sample-emails.json";
-
-// Demo mode detection: env var or ?demo=1
-const isDemo = (process.env.REACT_APP_DEMO === 'true') || new URLSearchParams(window.location.search).get('demo') === '1' || (typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('demo') === '1');
-
+import useDemoMode from './hooks/useDemoMode';
+import { useNavigate } from 'react-router-dom';
 function App() {
   // State variables for managing email, password, and login state
   const [email, setEmail] = useState(""); // User's email input
@@ -100,8 +98,8 @@ function App() {
               )}
               <div className="form-section">
                     {/* Demo Mode badge (visible always on login screen) */}
-                    <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 20 }}>
-                      <div style={{ background: '#d9534f', color: 'white', padding: '6px 10px', borderRadius: 6, fontWeight: 600, fontSize: '12px' }}>Demo Mode</div>
+                    <div className="demo-mode-badge-container">
+                      <div className="demo-mode-badge">Demo Mode</div>
                     </div>
                 <img src={logo} alt="App Logo" className="group-logo" />
                 <h1 className="title">{appName}</h1>
@@ -146,23 +144,8 @@ function App() {
                 <p className="or-text">or continue with</p>
                 {/* Enter Demo Button */}
                 <div style={{ marginTop: 8 }}>
-                  <button
-                    className="button"
-                    style={{ backgroundColor: '#6c757d', border: 'none', color: 'white' }}
-                    onClick={() => {
-                      try {
-                        if (typeof window !== 'undefined' && window.localStorage) {
-                          window.localStorage.setItem('demo', '1');
-                        }
-                      } catch (e) {
-                        console.warn('Failed to set demo flag in localStorage', e);
-                      }
-                      // navigate to home (demo param kept for compatibility)
-                      window.location.href = '/home?demo=1';
-                    }}
-                  >
-                    Enter demo
-                  </button>
+                  {/* Use a small in-JSX component so we can call useNavigate safely */}
+                  <DemoEnterButton />
                 </div>
                 <div className="account-circles">
                   {/* Gmail login */}
@@ -174,9 +157,25 @@ function App() {
             </div>
           }
         />
-  <Route path="/home" element={<Homepage demoMode={isDemo} demoEmails={demoData.emails} />} />
+  <Route path="/home" element={<Homepage demoEmails={demoData.emails} />} />
       </Routes>
     </Router>
+  );
+}
+
+function DemoEnterButton() {
+  const { enterDemo } = useDemoMode();
+  const navigate = useNavigate();
+  return (
+    <button
+      className="button demo-enter-button"
+      onClick={() => {
+        enterDemo();
+        navigate('/home?demo=1');
+      }}
+    >
+      Enter demo
+    </button>
   );
 }
 

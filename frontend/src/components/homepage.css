@@ -374,6 +374,54 @@ header {
   z-index: 10000;
 }
 
+/* Demo mode badge and modal */
+.demo-mode-badge-container {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 50;
+}
+
+.demo-mode-badge {
+  background: #d9534f;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.demo-exit-button {
+  margin-left: 12px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.demo-confirm-overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.demo-confirm-card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 480px;
+  width: 90%;
+}
+
 .compose-form {
   background-color: #fff;
   padding: 20px;

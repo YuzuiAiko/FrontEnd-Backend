@@ -212,3 +212,29 @@ body, html {
   align-items: center;
   justify-content: center;
 }
+
+/* Demo enter button (login screen) */
+.demo-enter-button {
+  background-color: #6c757d;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.demo-mode-badge-container {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+}
+
+.demo-mode-badge {
+  background: #d9534f;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+}

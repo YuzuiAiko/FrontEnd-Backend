@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import DOMPurify from "dompurify"; // To sanitize HTML and prevent XSS attacks
 import "./homepage.css"; // Importing styles for the component
+import useDemoMode from '../hooks/useDemoMode';
+import { useNavigate } from 'react-router-dom';
 
 const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
@@ -26,9 +28,13 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const toggleDarkMode = () => setIsDarkMode((dm) => !dm);
 
+  const demoHook = useDemoMode();
+  const navigate = useNavigate();
+
   // Fetch emails from the server or load demo emails when demoMode is enabled
   const fetchEmails = useCallback(() => {
-    if (demoMode) {
+    const effectiveDemo = demoMode || demoHook.isDemo;
+    if (effectiveDemo) {
       try {
         const formatted = demoEmails.map((email) => ({
           ...email,
@@ -64,6 +70,14 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
           setFilteredEmails(formatted);
         } else {
           setError("No emails found.");
+            { (demoMode || demoHook.isDemo) && (
+              <button
+                className="demo-exit-button"
+                onClick={() => setConfirmExitOpen(true)}
+              >
+                Exit demo
+              </button>
+            )}
         }
         setLoading(false);
       })
@@ -76,7 +90,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
 
   useEffect(() => {
     fetchEmails();
-    if (!demoMode) {
+    if (! (demoMode || demoHook.isDemo)) {
       const id = setInterval(fetchEmails, 30000);
       return () => clearInterval(id);
     }
@@ -239,44 +253,29 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
               className="top-bar-logo" 
             />
             <h1 className="top-bar-title">ImfrisivMail</h1>
-            {demoMode && (
+            {(demoMode || demoHook.isDemo) && (
               <>
-              <button
-                style={{
-                  marginLeft: 12,
-                  background: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  padding: '6px 10px',
-                  borderRadius: 6,
-                  cursor: 'pointer'
-                }}
-                onClick={() => setConfirmExitOpen(true)}
-              >
-                Exit demo
-              </button>
-              {confirmExitOpen && (
-                <div style={{ position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
-                  <div style={{ background: 'white', padding: 20, borderRadius: 8, maxWidth: 480, width: '90%' }}>
-                    <h3 style={{ marginTop: 0 }}>Exit demo mode?</h3>
-                    <p>Are you sure you want to exit demo mode and return to the login screen?</p>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                      <button onClick={() => setConfirmExitOpen(false)} style={{ padding: '6px 10px' }}>Cancel</button>
-                      <button onClick={() => {
-                        try {
-                          if (typeof window !== 'undefined' && window.localStorage) {
-                            window.localStorage.removeItem('demo');
-                            window.localStorage.setItem('demoExited','1');
-                          }
-                        } catch (e) {
-                          console.warn('Failed to clear demo flag', e);
-                        }
-                        window.location.href = '/';
-                      }} style={{ padding: '6px 10px', background: '#d9534f', color: 'white', border: 'none', borderRadius: 4 }}>Exit demo</button>
+                <button
+                  className="demo-exit-button"
+                  onClick={() => setConfirmExitOpen(true)}
+                >
+                  Exit demo
+                </button>
+                {confirmExitOpen && (
+                  <div className="demo-confirm-overlay">
+                    <div className="demo-confirm-card">
+                      <h3 style={{ marginTop: 0 }}>Exit demo mode?</h3>
+                      <p>Are you sure you want to exit demo mode and return to the login screen?</p>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <button onClick={() => setConfirmExitOpen(false)} style={{ padding: '6px 10px' }}>Cancel</button>
+                        <button onClick={() => {
+                          demoHook.exitDemo();
+                          navigate('/');
+                        }} style={{ padding: '6px 10px', background: '#d9534f', color: 'white', border: 'none', borderRadius: 4 }}>Exit demo</button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
               </>
             )}
           </div>
