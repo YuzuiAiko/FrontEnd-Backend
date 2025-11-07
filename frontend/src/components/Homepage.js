@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import DOMPurify from "dompurify"; // To sanitize HTML and prevent XSS attacks
 import "./homepage.css"; // Importing styles for the component
 import useDemoMode from '../hooks/useDemoMode';
-import { useNavigate } from 'react-router-dom';
 
 const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
@@ -29,7 +28,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
   const toggleDarkMode = () => setIsDarkMode((dm) => !dm);
 
   const demoHook = useDemoMode();
-  const navigate = useNavigate();
+  // we'll use a simple full-page navigation on exit to ensure session state is cleared
 
   // Fetch emails from the server or load demo emails when demoMode is enabled
   const fetchEmails = useCallback(() => {
@@ -270,7 +269,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                         <button onClick={() => setConfirmExitOpen(false)} style={{ padding: '6px 10px' }}>Cancel</button>
                         <button onClick={() => {
                           demoHook.exitDemo();
-                          navigate('/');
+                          window.location.href = '/';
                         }} style={{ padding: '6px 10px', background: '#d9534f', color: 'white', border: 'none', borderRadius: 4 }}>Exit demo</button>
                       </div>
                     </div>
