@@ -250,6 +250,9 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                   cursor: 'pointer'
                 }}
                 onClick={() => {
+                  // Show a confirmation dialog before exiting demo
+                  const ok = typeof window !== 'undefined' && window.confirm ? window.confirm('Exit demo mode and return to the login screen?') : true;
+                  if (!ok) return;
                   try {
                     if (typeof window !== 'undefined' && window.localStorage) {
                       window.localStorage.removeItem('demo');

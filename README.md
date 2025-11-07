@@ -121,6 +121,22 @@ Notes:
 - The frontend demo is the fastest way to show the UI and classification labels to participants. It does not exercise the backend classifier or authentication flows.
 - If you later want the frontend to contact the real classifier, you can add a small demo endpoint to the backend and point the frontend at it.
 
+Troubleshooting tips (Demo & local dev)
+-------------------------------------
+
+- Ports: The frontend dev server runs on port 5003 by default in this repo (`PORT=5003`). If that port is in use, set `PORT` to another free port in the `frontend/.env` file or start command.
+- HTTPS: The frontend dev server is configured to run with HTTPS in development so session cookies with `secure` flags behave correctly. If your browser blocks the dev cert, you can:
+   - Trust the `ssl/localhost-cert.pem` certificate manually in your OS/browser, or
+   - Switch to HTTP by editing the `start` script in `frontend/package.json` (not recommended when testing cookies/session behavior).
+- Environment variables: For demo mode the code checks (in order): `REACT_APP_DEMO` env var, `?demo=1` query param, and a `demo` localStorage flag. The `start_demo.ps1` script sets `REACT_APP_DEMO=true` for convenience.
+- Tests: To run the smoke test we added, from the `frontend` folder run the test once (non-interactive):
+
+```powershell
+$env:CI='true'; npm test -- --watchAll=false --testPathPattern=demo-smoke.test.js
+```
+
+If the test fails, open the browser devtools console while running the app to see errors about missing assets or runtime exceptions.
+
 ## Authentication Flow: Frontend, Backend, and Login Methods
 
 The authentication process between the frontend and backend is based on OAuth2 for both Gmail and Outlook. Here’s how the flow works:
