@@ -4,6 +4,7 @@ import "./homepage.css"; // Importing styles for the component
 
 const Homepage = ({ userEmail }) => {
   const backendUrl = process.env.REACT_APP_BACKEND_URL;
+  const classifierUrl = process.env.REACT_APP_CLASSIFIER_URL || "http://localhost:5001";
   // State hooks for managing various aspects of the component
   const [emails, setEmails] = useState([]); // Stores the fetched emails
   const [loading, setLoading] = useState(true); // Tracks loading state
@@ -20,6 +21,7 @@ const Homepage = ({ userEmail }) => {
   const [body, setBody] = useState(""); // Stores the body of the email
   const [sidebarVisible, setSidebarVisible] = useState(false); // Toggles the sidebar visibility
   const [activeCategory, setActiveCategory] = useState("Inbox"); // Tracks the active email category
+  const [categories, setCategories] = useState(["Inbox", "Important", "Drafts", "Spam"]);
 
   // Light/Dark Mode state
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -52,7 +54,28 @@ const Homepage = ({ userEmail }) => {
         setError("Failed to load emails.");
         setLoading(false);
       });
-  }, []);
+  }, [backendUrl]);
+
+  // Fetch classifier metadata for dynamic categories
+  useEffect(() => {
+    const loadMetadata = async () => {
+      try {
+        const res = await fetch(`${classifierUrl}/model-metadata`, { method: "GET" });
+        const data = await res.json();
+        if (Array.isArray(data.ui_labels) && data.ui_labels.length > 0) {
+          setCategories(data.ui_labels);
+          if (!data.ui_labels.includes(activeCategory)) {
+            setActiveCategory(data.ui_labels[0]);
+          }
+        }
+        // compatibility_mapping is available if needed in future
+      } catch (e) {
+        // Non-fatal; keep defaults
+        console.warn("Failed to load classifier metadata", e);
+      }
+    };
+    loadMetadata();
+  }, [classifierUrl, activeCategory]);
 
   useEffect(() => {
     fetchEmails();
@@ -98,7 +121,7 @@ const Homepage = ({ userEmail }) => {
         e.sender.toLowerCase().includes(searchQuery.toLowerCase())
     );
     updated = mergeSort(updated, sortCriteria);
-    if (activeCategory !== "Inbox") {
+    if (activeCategory && activeCategory !== "Inbox") {
       updated = updated.filter((e) =>
         e.classification.includes(activeCategory)
       );
@@ -179,18 +202,18 @@ const Homepage = ({ userEmail }) => {
       {/* Sidebar */}
       <div className={`sidebar ${sidebarVisible ? "visible" : ""}`}>
         <ul>
-          {["Inbox", "Important", "Drafts", "Spam"].map((cat) => (
+          {categories.map((cat) => (
             <li key={cat}>
-              <a onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}>
+              <button type="button" className="link-like" onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}>
                 {cat}
-              </a>
+              </button>
             </li>
           ))}
           <li>
-            <a onClick={() => handleComposeToggle("new")}>Compose</a>
+            <button type="button" className="link-like" onClick={() => handleComposeToggle("new")}>Compose</button>
           </li>
           <li>
-            <a onClick={handleLogout}>Logout</a> {/* Logout button */}
+            <button type="button" className="link-like" onClick={handleLogout}>Logout</button>
           </li>
         </ul>
       </div>
