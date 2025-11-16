@@ -34,7 +34,26 @@ class EmailClassifier:
     """
     def __init__(self):
         """Initialize the LLM-based email classifier."""
-        self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        perplexity_key = os.getenv('PERPLEXITY_API_KEY')
+        openai_key = os.getenv('OPENAI_API_KEY')
+
+        if perplexity_key:
+            # Use Perplexity Sonar API (OpenAI-compatible chat completions)
+            self.client = OpenAI(
+                api_key=perplexity_key,
+                base_url="https://api.perplexity.ai"
+            )
+            # Default to a generic Sonar chat model; can be overridden via PERPLEXITY_MODEL
+            self.model_name = os.getenv('PERPLEXITY_MODEL', 'sonar')
+
+        elif openai_key:
+            # Fallback to OpenAI if PERPLEXITY_API_KEY is not set
+            self.client = OpenAI(api_key=openai_key)
+            self.model_name = os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')
+        else:
+            # Deliberately raise so callers can detect missing configuration
+            raise ValueError("No LLM API key configured. Set PERPLEXITY_API_KEY or OPENAI_API_KEY in your environment.")
+
         self.categories = os.getenv('CLASSIFICATION_CATEGORIES', 'important,spam,newsletter,social,promotional,personal,business,automated').split(',')
         
     def load_emails_from_data_folder(self, data_folder: str = "email_data") -> List[Dict[str, Any]]:
@@ -310,7 +329,7 @@ class EmailClassifier:
         return text.strip()
     
     def classify_email_with_llm(self, email_data: Dict[str, Any]) -> str:
-        """Classify a single email using OpenAI LLM."""
+        """Classify a single email using the configured LLM provider."""
         try:
             # Build enhanced prompt with Outlook metadata
             metadata_info = ""
@@ -334,7 +353,7 @@ class EmailClassifier:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model_name,
                 messages=[
                     {"role": "system", "content": "You are an email classification expert. Classify emails into the most appropriate category."},
                     {"role": "user", "content": prompt}
@@ -358,7 +377,7 @@ class EmailClassifier:
         except Exception as e:
             print(f"Error classifying email: {e}")
             return "important"  # Default fallback
-    
+
     def classify_emails(self, emails: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Classify a list of emails using LLM."""
         classified_emails = []
@@ -366,7 +385,10 @@ class EmailClassifier:
         print(f"Classifying {len(emails)} emails...")
         
         for i, email_data in enumerate(emails):
-            print(f"Processing email {i+1}/{len(emails)}: {email_data['subject'][:50]}...")
+            # Sanitize subject for consoles that cannot print certain Unicode characters (e.g., emojis)
+            raw_subject = email_data.get('subject', '')
+            safe_subject = raw_subject[:50].encode('cp1252', errors='ignore').decode('cp1252', errors='ignore')
+            print(f"Processing email {i+1}/{len(emails)}: {safe_subject}...")
             
             classification = self.classify_email_with_llm(email_data)
             
@@ -377,9 +399,14 @@ class EmailClassifier:
             
         return classified_emails
     
-    def save_classified_emails(self, classified_emails: List[Dict[str, Any]], output_file: str = "classified_emails.json"):
-        """Save classified emails to a JSON file."""
+    def save_classified_emails(self, classified_emails: List[Dict[str, Any]], output_file: str = os.path.join("output", "classified_emails.json")):
+        """Save classified emails to a JSON file in a dedicated output subfolder."""
         try:
+            # Ensure the target directory exists
+            output_dir = os.path.dirname(output_file)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(classified_emails, f, indent=2, ensure_ascii=False)
             print(f"Classified emails saved to {output_file}")
@@ -418,9 +445,33 @@ class EmailClassifier:
             combined_text = f"{email_data['subject']} {email_data['body']}"
             email_texts.append(combined_text)
             labels.append(email_data['classification'])
-        
-        # Create label mapping for SVM compatibility
+
+        # Filter out labels that are too rare for stratified splitting
+        from collections import Counter
+        label_counts = Counter(labels)
+        valid_indices = [
+            idx for idx, label in enumerate(labels)
+            if label_counts[label] >= 2
+        ]
+
+        if len(valid_indices) < len(labels):
+            print(
+                f"Filtering out {len(labels) - len(valid_indices)} samples "
+                "from extremely rare classes (fewer than 2 examples)."
+            )
+
+        # Apply filtering
+        email_texts = [email_texts[i] for i in valid_indices]
+        labels = [labels[i] for i in valid_indices]
+
+        # After filtering, ensure we still have at least two distinct labels
         unique_labels = list(set(labels))
+        if len(unique_labels) < 2:
+            print("Not enough distinct labels remain after filtering to train an SVM.")
+            print("Aborting SVM training; classification results are still available in classified_emails.json.")
+            return None, None, {}
+
+        # Create label mapping for SVM compatibility
         label_to_id = {label: idx for idx, label in enumerate(unique_labels)}
         id_to_label = {idx: label for label, idx in label_to_id.items()}
         
@@ -496,6 +547,10 @@ class EmailClassifier:
         
         # Train SVM model from LLM data
         svm_model, vectorizer, label_mapping = self.train_svm_model_from_llm_data(classified_emails)
+
+        if svm_model is None or vectorizer is None or not label_mapping:
+            print("No SVM model was created due to insufficient label diversity; skipping model export.")
+            return None, None, {}
         
         # Save the trained model
         self.save_trained_model(svm_model, vectorizer, label_mapping)
@@ -546,10 +601,10 @@ def main():
     """
     print("Starting LLM-based Email Classification and Model Training...")
     
-    # Check if OpenAI API key is available
-    if not os.getenv('OPENAI_API_KEY'):
-        print("ERROR: OpenAI API key not found!")
-        print("Please set your OPENAI_API_KEY in the .env file or environment variables.")
+    # Check if any supported LLM API key is available
+    if not (os.getenv('PERPLEXITY_API_KEY') or os.getenv('OPENAI_API_KEY')):
+        print("ERROR: No LLM API key found!")
+        print("Please set PERPLEXITY_API_KEY (recommended) or OPENAI_API_KEY in the .env file or environment variables.")
         return
     
     # Initialize classifier
@@ -575,17 +630,32 @@ def main():
     # Generate classification report
     classifier.generate_classification_report(classified_emails)
     
-    # Train SVM model from LLM classifications
-    classifier.create_model_compatibility_layer(classified_emails)
-    
-    print("\n" + "="*60)
-    print("TRAINING COMPLETED SUCCESSFULLY!")
-    print("="*60)
-    print("✓ Emails classified using LLM")
-    print("✓ SVM model trained from LLM data")
-    print("✓ Model saved as joblib files")
-    print("✓ Compatible with existing svm_model.py")
-    print("\nYou can now use the trained model with svm_model.py for fast inference!")
+    # Train SVM model from LLM classifications and create compatibility layer
+    svm_model, vectorizer, compatibility_mapping = classifier.create_model_compatibility_layer(classified_emails)
 
-if __name__ == "__main__":
-    main()
+    # Summary (ASCII-only for Windows console compatibility)
+    print("\n" + "="*60)
+    print("TRAINING COMPLETED SUMMARY")
+    print("="*60)
+
+    if emails:
+        print("OK: Emails loaded from email_data directory")
+    else:
+        print("WARN: No emails were loaded from email_data directory")
+
+    if classified_emails:
+        print("OK: Emails classified using LLM (see classified_emails.json)")
+    else:
+        print("WARN: No emails were classified using LLM")
+
+    if svm_model is not None and vectorizer is not None:
+        print("OK: SVM model trained and saved to model directory")
+    else:
+        print("INFO: SVM model was not trained (insufficient label diversity or other issue)")
+
+    if compatibility_mapping:
+        print("OK: Compatibility mapping created and saved")
+    else:
+        print("INFO: Compatibility mapping was not created")
+
+    print("\nYou can now use the trained model with svm_model.py for fast inference (if a model was created)!")

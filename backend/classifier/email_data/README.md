@@ -29,9 +29,12 @@ Place your exported mailboxes here. This folder is ignored by git to protect pri
 - json/  (structured email data)
 
 ## Usage:
-1. Copy `.env.example` to `.env` and add your OpenAI API key
+1. Copy `.env.example` to `.env` and add your LLM API key.
+   - Recommended: set `PERPLEXITY_API_KEY` (Perplexity Sonar, using OpenAI-compatible API).
+   - Optional fallback: set `OPENAI_API_KEY`.
 2. Install dependencies: `pip install -r requirements.txt`
-3. Run classification: `python train_model.py`
+3. Run classification and training: `python train_model.py`
+   - The script automatically prefers `PERPLEXITY_API_KEY` if present, otherwise it falls back to `OPENAI_API_KEY`.
 
 ## Notes:
 - Do not commit raw emails. This folder is ignored except this README.

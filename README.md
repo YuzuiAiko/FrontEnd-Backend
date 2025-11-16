@@ -72,10 +72,15 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
    ```
 
 5. Train the email classifier (optional):
+   - Create a `.env` in `backend/classifier` (or reuse your backend `.env`) and set an LLM API key:
+     - Recommended: `PERPLEXITY_API_KEY` (Perplexity Sonar, OpenAI-compatible endpoint).
+     - Optional fallback: `OPENAI_API_KEY`.
+   - Then run:
    ```bash
    cd backend/classifier
    python train_model.py
    ```
+   The training script will automatically prefer `PERPLEXITY_API_KEY` if present, otherwise it falls back to `OPENAI_API_KEY`.
 
 
 ## Usage
