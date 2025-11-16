@@ -2,17 +2,42 @@
 
 Place your exported mailboxes here. This folder is ignored by git to protect privacy and keep the repo small.
 
-Accepted sources:
-- MBOX exports (Gmail Takeout, Apple Mail)
-- EML files (individual messages)
-- JSON/NDJSON you generate
+## Accepted Sources:
+- **CSV files** (Outlook exports - recommended for classification)
+- **MBOX exports** (Gmail Takeout, Apple Mail)
+- **EML files** (individual messages)
+- **JSON files** (structured email data)
 
-Recommended layout (optional):
-- mbox/  (one or more .mbox files)
-- eml/   (raw .eml files)
-- json/  (normalized records, e.g. emails.jsonl)
+## How to Export Emails:
 
-Notes:
-- Do not commit raw emails. This folder is ignored except this README and .gitignore.
+### Outlook Classic:
+1. Select emails you want to export
+2. File → Import and Export → Export to a file
+3. Choose "Comma Separated Values (Windows)"
+4. Save the CSV file to this folder
+
+### Gmail Takeout:
+1. Go to https://takeout.google.com/
+2. Select "Mail" and choose your labels
+3. Download the MBOX file
+4. Extract and place .mbox files in this folder
+
+## Recommended Layout (optional):
+- csv/   (Outlook CSV exports)
+- mbox/  (Gmail Takeout .mbox files)
+- eml/   (individual .eml files)
+- json/  (structured email data)
+
+## Usage:
+1. Copy `.env.example` to `.env` and add your LLM API key.
+   - Recommended: set `PERPLEXITY_API_KEY` (Perplexity Sonar, using OpenAI-compatible API).
+   - Optional fallback: set `OPENAI_API_KEY`.
+2. Install dependencies: `pip install -r requirements.txt`
+3. Run classification and training: `python train_model.py`
+   - The script automatically prefers `PERPLEXITY_API_KEY` if present, otherwise it falls back to `OPENAI_API_KEY`.
+
+## Notes:
+- Do not commit raw emails. This folder is ignored except this README.
 - Consider removing PII or using redaction scripts before sharing data.
+- CSV format from Outlook is recommended for best classification results.
 
