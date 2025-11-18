@@ -19,7 +19,21 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
   const [subject, setSubject] = useState(""); // Stores the subject of the email
   const [body, setBody] = useState(""); // Stores the body of the email
   const [sidebarVisible, setSidebarVisible] = useState(false); // Toggles the sidebar visibility
-  const [activeCategory, setActiveCategory] = useState("Inbox"); // Tracks the active email category
+  // Categories used by the classifier (from real-data-pipeline)
+  const CATEGORIES = [
+    "important",
+    "spam",
+    "newsletter",
+    "social",
+    "promotional",
+    "personal",
+    "business",
+    "automated",
+  ];
+
+  const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+  const [activeCategory, setActiveCategory] = useState("all"); // Tracks the active email category (use 'all' to show everything)
 
   // Light/Dark Mode state
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -120,10 +134,11 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
         e.sender.toLowerCase().includes(searchQuery.toLowerCase())
     );
     updated = mergeSort(updated, sortCriteria);
-    if (activeCategory !== "Inbox") {
-      updated = updated.filter((e) =>
-        e.classification.includes(activeCategory)
-      );
+    if (activeCategory !== "all") {
+      updated = updated.filter((e) => {
+        const cls = Array.isArray(e.classification) ? e.classification : [e.classification];
+        return cls.some((c) => String(c).toLowerCase() === String(activeCategory).toLowerCase());
+      });
     }
     setFilteredEmails(updated);
   }, [searchQuery, sortCriteria, emails, activeCategory, mergeSort]);
@@ -206,10 +221,16 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
       {/* Sidebar */}
       <div className={`sidebar ${sidebarVisible ? "visible" : ""}`}>
         <ul>
-          {["Inbox", "Important", "Drafts", "Spam"].map((cat) => (
-            <li key={cat}>
-              <a onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}>
-                {cat}
+          {(["all", ...CATEGORIES]).map((catKey) => (
+            <li key={catKey}>
+              <a
+                onClick={() => {
+                  setActiveCategory(catKey);
+                  setCurrentPage(1);
+                }}
+                className={activeCategory === catKey ? 'active' : ''}
+              >
+                {catKey === 'all' ? 'All' : capitalize(catKey)}
               </a>
             </li>
           ))}
@@ -281,7 +302,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                 >
                   <h3>{email.subject}</h3>
                   <p>From: {email.sender}</p>
-                  <p>Classification: {email.classification.join(", ")}</p>
+                    <p>Classification: {Array.isArray(email.classification) ? email.classification.map(c => capitalize(String(c).toLowerCase())).join(', ') : capitalize(String(email.classification))}</p>
                   <p className="date-time">
                     Date: {formatDateTime(email.date)}
                   </p>
@@ -316,7 +337,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
             </button>
             <h2>Sender: {selectedEmail.sender}</h2>
             <h3>Subject: {selectedEmail.subject}</h3>
-            <p>Classification: {selectedEmail.classification.join(", ")}</p>
+              <p>Classification: {Array.isArray(selectedEmail.classification) ? selectedEmail.classification.map(c => capitalize(String(c).toLowerCase())).join(', ') : capitalize(String(selectedEmail.classification))}</p>
             <p className="date-time">
               Date: {formatDateTime(selectedEmail.date)}
             </p>
