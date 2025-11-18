@@ -28,3 +28,4 @@ Desktop.ini
 *.env.local
 *.env.development
 *.env.production
+.vercel
