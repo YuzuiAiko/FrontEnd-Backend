@@ -102,6 +102,16 @@ The authentication process between the frontend and backend is based on OAuth2 f
    - The user clicks a login button (e.g., "Sign in with Google" or "Sign in with Outlook") in the frontend React app.
    - The frontend opens a new window or redirects the user to the backend’s OAuth2 login endpoint (e.g., `/auth/gmail/login` or `/auth/outlook/login`).
 
+### Backend: Vercel deployment note
+
+When deploying the `backend/` folder to Vercel (or similar serverless platforms), the platform terminates TLS for you and provides HTTPS at the edge. The backend should not attempt to load local SSL PEM files in that environment — those files typically don't exist in the build/runtime environment and will cause the process to crash with ENOENT errors.
+
+Changes in this repo to support Vercel:
+- `backend/server.js` now detects Vercel/Now runtime (via `VERCEL`, `VERCEL_ENV`, or `NOW_REGION`) and avoids reading local `ssl/*.pem` files when those environment variables are present.
+- Locally (or on self-hosted servers), the server will attempt to start an HTTPS server if both key and cert files exist, otherwise it falls back to an HTTP server.
+
+If you need HTTPS locally, keep your certs in `backend/ssl` and set `SSL_KEY_FILE` / `SSL_CRT_FILE` environment variables to point to them. On Vercel, simply deploy the `backend/` directory — the platform's HTTPS will be used automatically.
+
 2. **Backend Handles OAuth2 Flow:**
    - The backend redirects the user to the third-party provider’s (Google or Microsoft) OAuth2 consent screen.
    - After the user authenticates and grants permissions, the provider redirects back to the backend’s callback endpoint (e.g., `/auth/gmail/callback` or `/auth/outlook/callback`).

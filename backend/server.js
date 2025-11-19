@@ -119,15 +119,44 @@ app.use((req, res) => {
   res.status(404).send("Route not found"); // Respond with a 404 Not Found error
 });
 
-// Load SSL certificate and key for HTTPS server
-const options = {
-  key: fs.readFileSync(process.env.SSL_KEY_FILE || "ssl/localhost-key.pem"), // Load SSL private key
-  cert: fs.readFileSync(process.env.SSL_CRT_FILE || "ssl/localhost-cert.pem"), // Load SSL certificate
-};
-
-// Start the HTTPS server on the specified port
+// Start server in a way that's safe on Vercel (platform provides HTTPS)
 const PORT = process.env.PORT || 5002; // Ensure backend uses port 5002
-https.createServer(options, app).listen(PORT, () => {
-  console.log(`Server running at https://localhost:${PORT}`); // Log server start message
-});
+
+// Detect Vercel or similar serverless hosting environment. Vercel exposes
+// `VERCEL` or `VERCEL_ENV` / `NOW_REGION` environment variables at runtime.
+const isVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV || process.env.NOW_REGION);
+
+if (isVercel) {
+  // On Vercel the platform terminates TLS for us; do not attempt to load local SSL files.
+  console.log("Detected Vercel environment - not loading local SSL files. Using platform HTTPS.");
+  app.listen(PORT, () => {
+    console.log(`Server running (HTTP) on port ${PORT} — Vercel provides HTTPS externally.`);
+  });
+} else {
+  // Attempt to use local SSL files when available (development / self-hosted)
+  const keyPath = process.env.SSL_KEY_FILE || "ssl/localhost-key.pem";
+  const certPath = process.env.SSL_CRT_FILE || "ssl/localhost-cert.pem";
+
+  if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    try {
+      const options = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath),
+      };
+      https.createServer(options, app).listen(PORT, () => {
+        console.log(`HTTPS server running at https://localhost:${PORT}`);
+      });
+    } catch (err) {
+      console.error('Failed to start HTTPS server, falling back to HTTP:', err);
+      app.listen(PORT, () => {
+        console.log(`Server running (HTTP) on port ${PORT}`);
+      });
+    }
+  } else {
+    console.warn(`SSL files not found at ${keyPath} / ${certPath}. Starting HTTP server.`);
+    app.listen(PORT, () => {
+      console.log(`Server running (HTTP) on port ${PORT}`);
+    });
+  }
+}
 
