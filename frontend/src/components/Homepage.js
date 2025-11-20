@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import DOMPurify from "dompurify"; // To sanitize HTML and prevent XSS attacks
 import "./homepage.css"; // Importing styles for the component
 
-const Homepage = ({ userEmail }) => {
+const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
   // State hooks for managing various aspects of the component
   const [emails, setEmails] = useState([]); // Stores the fetched emails
   const [loading, setLoading] = useState(true); // Tracks loading state
@@ -18,15 +19,48 @@ const Homepage = ({ userEmail }) => {
   const [subject, setSubject] = useState(""); // Stores the subject of the email
   const [body, setBody] = useState(""); // Stores the body of the email
   const [sidebarVisible, setSidebarVisible] = useState(false); // Toggles the sidebar visibility
-  const [activeCategory, setActiveCategory] = useState("Inbox"); // Tracks the active email category
+  // Categories used by the classifier (from real-data-pipeline)
+  const CATEGORIES = [
+    "important",
+    "spam",
+    "newsletter",
+    "social",
+    "promotional",
+    "personal",
+    "business",
+    "automated",
+  ];
+
+  const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+  const [activeCategory, setActiveCategory] = useState("all"); // Tracks the active email category (use 'all' to show everything)
 
   // Light/Dark Mode state
   const [isDarkMode, setIsDarkMode] = useState(false);
   const toggleDarkMode = () => setIsDarkMode((dm) => !dm);
 
-  // Fetch emails from the server
+  // Fetch emails from the server or load demo emails when demoMode is enabled
   const fetchEmails = useCallback(() => {
-    fetch("https://localhost:5000/auth/gmail/emails", {
+    if (demoMode) {
+      try {
+        const formatted = demoEmails.map((email) => ({
+          ...email,
+          classification: Array.isArray(email.classification)
+            ? email.classification
+            : [email.classification],
+        }));
+        setEmails(formatted);
+        setFilteredEmails(formatted);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to load demo emails', err);
+        setError('Failed to load demo emails.');
+        setLoading(false);
+      }
+      return;
+    }
+
+    fetch(`${backendUrl}/auth/gmail/emails`, {
       method: "GET",
       credentials: "include",
     })
@@ -51,13 +85,16 @@ const Homepage = ({ userEmail }) => {
         setError("Failed to load emails.");
         setLoading(false);
       });
-  }, []);
+  }, [demoMode, demoEmails]);
 
   useEffect(() => {
     fetchEmails();
-    const id = setInterval(fetchEmails, 30000);
-    return () => clearInterval(id);
-  }, [fetchEmails]);
+    if (!demoMode) {
+      const id = setInterval(fetchEmails, 30000);
+      return () => clearInterval(id);
+    }
+    return undefined;
+  }, [fetchEmails, demoMode]);
 
   // Merge sort algorithm for sorting emails
   const mergeSort = useCallback((arr, sortBy) => {
@@ -97,10 +134,11 @@ const Homepage = ({ userEmail }) => {
         e.sender.toLowerCase().includes(searchQuery.toLowerCase())
     );
     updated = mergeSort(updated, sortCriteria);
-    if (activeCategory !== "Inbox") {
-      updated = updated.filter((e) =>
-        e.classification.includes(activeCategory)
-      );
+    if (activeCategory !== "all") {
+      updated = updated.filter((e) => {
+        const cls = Array.isArray(e.classification) ? e.classification : [e.classification];
+        return cls.some((c) => String(c).toLowerCase() === String(activeCategory).toLowerCase());
+      });
     }
     setFilteredEmails(updated);
   }, [searchQuery, sortCriteria, emails, activeCategory, mergeSort]);
@@ -128,7 +166,7 @@ const Homepage = ({ userEmail }) => {
   // Send email
   const handleSendEmail = async () => {
     try {
-      const res = await fetch("https://localhost:5000/auth/gmail/send", {
+  const res = await fetch(`${backendUrl}/auth/gmail/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -159,7 +197,7 @@ const Homepage = ({ userEmail }) => {
 
   const handleLogout = async () => {
     try {
-      await fetch("https://localhost:5000/api/logout", {
+  await fetch(`${backendUrl}/api/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -175,13 +213,24 @@ const Homepage = ({ userEmail }) => {
 
   return (
     <div className={`homepage-container ${isDarkMode ? "dark-mode" : ""}`}>
+      {demoMode && (
+        <div style={{ position: 'fixed', top: 12, right: 12, zIndex: 50 }}>
+          <div style={{ background: '#d9534f', color: 'white', padding: '6px 10px', borderRadius: 6, fontWeight: 600, fontSize: '12px' }}>Demo Mode — sample data</div>
+        </div>
+      )}
       {/* Sidebar */}
       <div className={`sidebar ${sidebarVisible ? "visible" : ""}`}>
         <ul>
-          {["Inbox", "Important", "Drafts", "Spam"].map((cat) => (
-            <li key={cat}>
-              <a onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}>
-                {cat}
+          {(["all", ...CATEGORIES]).map((catKey) => (
+            <li key={catKey}>
+              <a
+                onClick={() => {
+                  setActiveCategory(catKey);
+                  setCurrentPage(1);
+                }}
+                className={activeCategory === catKey ? 'active' : ''}
+              >
+                {catKey === 'all' ? 'All' : capitalize(catKey)}
               </a>
             </li>
           ))}
@@ -253,7 +302,7 @@ const Homepage = ({ userEmail }) => {
                 >
                   <h3>{email.subject}</h3>
                   <p>From: {email.sender}</p>
-                  <p>Classification: {email.classification.join(", ")}</p>
+                    <p>Classification: {Array.isArray(email.classification) ? email.classification.map(c => capitalize(String(c).toLowerCase())).join(', ') : capitalize(String(email.classification))}</p>
                   <p className="date-time">
                     Date: {formatDateTime(email.date)}
                   </p>
@@ -288,7 +337,7 @@ const Homepage = ({ userEmail }) => {
             </button>
             <h2>Sender: {selectedEmail.sender}</h2>
             <h3>Subject: {selectedEmail.subject}</h3>
-            <p>Classification: {selectedEmail.classification.join(", ")}</p>
+              <p>Classification: {Array.isArray(selectedEmail.classification) ? selectedEmail.classification.map(c => capitalize(String(c).toLowerCase())).join(', ') : capitalize(String(selectedEmail.classification))}</p>
             <p className="date-time">
               Date: {formatDateTime(selectedEmail.date)}
             </p>
