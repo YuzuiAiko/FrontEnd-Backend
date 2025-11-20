@@ -67,6 +67,19 @@ body, html {
   border: 1px solid rgba(255, 255, 255, 0.3); /* subtle glass border */
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
 }
+.form-section input {
+  width: 107%;
+  padding: 12px 18px;
+  border-radius: 25px;
+  border: none;
+  outline: none;
+
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+
+  margin-bottom: 15px; /* Ensures equal spacing */
+  box-sizing: border-box; /* Prevent width overflow */
+}
 
 .form-section input, .form-section button {
   cursor: pointer; /* Show pointer when hovering over input or button */
@@ -145,7 +158,7 @@ body, html {
   padding: 10px;
   border: none;
   border-radius: 20px;
-  background-color: #3B1C32;
+  background: rgba(135, 78, 78, 0.4);
   color: #fff;
   font-weight: bold;
   margin-left: 4px;
