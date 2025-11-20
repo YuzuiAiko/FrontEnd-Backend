@@ -126,5 +126,86 @@ def classify_emails():
         print("Error in /classify route:", e)  # Log any errors in the endpoint
         return str(e), 500  # Respond with error and 500 status code
 
+#
+# PHISHING_LINK_SVM_MODEL SECTION
+#
+
+# Importing phishing_link_svm_model for completeness
+# Try multiple import strategies so this module can be run from different CWDs
+predict_phishing = None
+try:
+    # Same-directory import (works when running from this folder)
+    from phishing_link_svm_model import predict_phishing as _predict_phishing
+    predict_phishing = _predict_phishing
+    print('Imported predict_phishing from phishing_link_svm_model')
+except Exception:
+    try:
+        # Package-style import (works when backend/ is on PYTHONPATH)
+        from classifier.phishing_link_svm_model import predict_phishing as _predict_phishing
+        predict_phishing = _predict_phishing
+        print('Imported predict_phishing from classifier.phishing_link_svm_model')
+    except Exception:
+        try:
+            # Fallback: import by file path
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                'phishing_link_svm_model', os.path.join(os.path.dirname(__file__), 'phishing_link_svm_model.py')
+            )
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            predict_phishing = getattr(mod, 'predict_phishing', None)
+            if predict_phishing:
+                print('Imported predict_phishing via importlib')
+        except Exception as e:
+            print(f'Could not import predict_phishing: {e}')
+
+
+# Endpoint: accept HTML body, extract links, classify each using predict_phishing
+@app.route("/classify_links", methods=["POST"])
+def classify_links_route():
+    """Accept JSON with `html` field, extract anchor hrefs, classify each link.
+
+    Request JSON: {"html": "<html>..."}
+    Response JSON: {"results": [{"url": "...", "prediction": "phishing"}, ...]}
+    """
+    try:
+        data = request.json or {}
+        html = data.get("html", "")
+        print("Received HTML for link classification, length:", len(html))
+
+        if not html:
+            return jsonify({"error": "No html provided"}), 400
+
+        if not predict_phishing:
+            raise RuntimeError("predict_phishing function is not available.")
+
+        soup = BeautifulSoup(html, 'html.parser')
+        anchors = soup.find_all('a', href=True)
+
+        results = []
+        seen = set()
+        for a in anchors:
+            href = a.get('href')
+            if not href:
+                continue
+            # avoid duplicates
+            if href in seen:
+                continue
+            seen.add(href)
+            try:
+                pred = predict_phishing(href)
+            except Exception as e:
+                pred = f"error: {e}"
+            results.append({"url": href, "prediction": pred})
+
+        return jsonify({"results": results}), 200
+    except Exception as e:
+        print("Error in /classify_links route:", e)
+        return str(e), 500
+
+#
+# END OF PHISHING_LINK_SVM_MODEL SECTION
+#
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)  # Run the Flask app on port 5001

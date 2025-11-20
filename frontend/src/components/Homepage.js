@@ -39,6 +39,14 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const toggleDarkMode = () => setIsDarkMode((dm) => !dm);
 
+  // Classifier service URL (can be overridden via env)
+  const classifierUrl = process.env.REACT_APP_CLASSIFIER_URL || "http://localhost:5001";
+
+  // Right-side panel state: link classification results
+  const [sideItems, setSideItems] = useState([]);
+  const [sideLoading, setSideLoading] = useState(false);
+  const [sideError, setSideError] = useState(null);
+
   // Fetch emails from the server or load demo emails when demoMode is enabled
   const fetchEmails = useCallback(() => {
     if (demoMode) {
@@ -95,6 +103,56 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
     }
     return undefined;
   }, [fetchEmails, demoMode]);
+
+  // When an email is selected, call classifier's /classify_links with the email body
+  useEffect(() => {
+    if (!selectedEmail) {
+      setSideItems([]);
+      setSideError(null);
+      setSideLoading(false);
+      return undefined;
+    }
+
+    let isSubscribed = true;
+    const controller = new AbortController();
+
+    const fetchLinks = async () => {
+      setSideLoading(true);
+      setSideError(null);
+      try {
+        const res = await fetch(`${classifierUrl}/classify_links`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ html: selectedEmail.body }),
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `Status ${res.status}`);
+        }
+        const data = await res.json();
+        if (isSubscribed) {
+          setSideItems(Array.isArray(data.results) ? data.results : []);
+        }
+      } catch (err) {
+        if (isSubscribed) {
+          if (err.name === 'AbortError') return;
+          console.error('Error fetching link classifications:', err);
+          setSideError(err.message || 'Failed to fetch link classifications');
+          setSideItems([]);
+        }
+      } finally {
+        if (isSubscribed) setSideLoading(false);
+      }
+    };
+
+    fetchLinks();
+
+    return () => {
+      isSubscribed = false;
+      controller.abort();
+    };
+  }, [selectedEmail, classifierUrl]);
 
   // Merge sort algorithm for sorting emails
   const mergeSort = useCallback((arr, sortBy) => {
@@ -327,32 +385,57 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
             </div>
           </>
         ) : (
-          /* Email Detail View */
-          <div className="email-detail-container">
-            <button
-              className="back-button"
-              onClick={() => setSelectedEmail(null)}
-            >
-              Back
-            </button>
-            <h2>Sender: {selectedEmail.sender}</h2>
-            <h3>Subject: {selectedEmail.subject}</h3>
-              <p>Classification: {Array.isArray(selectedEmail.classification) ? selectedEmail.classification.map(c => capitalize(String(c).toLowerCase())).join(', ') : capitalize(String(selectedEmail.classification))}</p>
-            <p className="date-time">
-              Date: {formatDateTime(selectedEmail.date)}
-            </p>
-            <div
-              className="email-body"
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(selectedEmail.body),
-              }}
-            />
-            <button
-              className="reply-button"
-              onClick={() => handleComposeToggle("reply", selectedEmail)}
-            >
-              Reply
-            </button>
+          /* Email Detail View - two column layout (main + right panel) */
+          <div className="email-detail-layout">
+            <div className="email-detail-container email-detail-main">
+              <button
+                className="back-button"
+                onClick={() => setSelectedEmail(null)}
+              >
+                Back
+              </button>
+              <h2>Sender: {selectedEmail.sender}</h2>
+              <h3>Subject: {selectedEmail.subject}</h3>
+              <p>
+                Classification: {Array.isArray(selectedEmail.classification) ? selectedEmail.classification.map(c => capitalize(String(c).toLowerCase())).join(', ') : capitalize(String(selectedEmail.classification))}
+              </p>
+              <p className="date-time">
+                Date: {formatDateTime(selectedEmail.date)}
+              </p>
+              <div
+                className="email-body"
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(selectedEmail.body),
+                }}
+              />
+              <button
+                className="reply-button"
+                onClick={() => handleComposeToggle("reply", selectedEmail)}
+              >
+                Reply
+              </button>
+            </div>
+
+            {/* Right-side panel: placeholder list (20% width) */}
+            <aside className="email-detail-side">
+              <h4>Link Classifications</h4>
+              {sideLoading ? (
+                <p>Scanning links...</p>
+              ) : sideError ? (
+                <p style={{ color: 'var(--muted)' }}>Error: {sideError}</p>
+              ) : sideItems.length === 0 ? (
+                <p style={{ color: 'var(--muted)' }}>No links found.</p>
+              ) : (
+                <ul className="side-list">
+                  {sideItems.map((it, i) => (
+                    <li key={i} className="side-list-item">
+                      <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 4 }}>{it.url}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>Prediction: {String(it.prediction)}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </aside>
           </div>
         )}
 
