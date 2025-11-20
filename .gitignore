@@ -28,3 +28,10 @@ Desktop.ini
 *.env.local
 *.env.development
 *.env.production
+
+# Python build/cache artifacts
+__pycache__/
+*.py[cod]
+
+# Local pager dumps
+remotesorigin
