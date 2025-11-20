@@ -33,6 +33,36 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
 
   const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
+  // Helpers for category styling and icons
+  const slugify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const categoryIcon = (cat) => {
+    const c = String(cat).toLowerCase();
+    switch (c) {
+      case 'important': return '❗';
+      case 'spam': return '🛑';
+      case 'newsletter': return '📰';
+      case 'social': return '👥';
+      case 'promotional': return '🏷️';
+      case 'personal': return '👤';
+      case 'business': return '💼';
+      case 'automated': return '⚙️';
+      default: return '🔖';
+    }
+  };
+
+    // Return a short one-line preview text for an email (sanitized)
+    const getPreview = (email) => {
+      try {
+        const raw = email.preview || email.snippet || email.body || "";
+        // Strip HTML tags by sanitizing with no allowed tags
+        const stripped = DOMPurify.sanitize(raw, { ALLOWED_TAGS: [] });
+        const single = String(stripped).replace(/\s+/g, ' ').trim();
+        return single.length > 120 ? `${single.slice(0, 117)}...` : single;
+      } catch (e) {
+        return "";
+      }
+    };
+
   const [activeCategory, setActiveCategory] = useState("all"); // Tracks the active email category (use 'all' to show everything)
 
   // Light/Dark Mode state
@@ -296,7 +326,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
             <a onClick={() => handleComposeToggle("new")}>Compose</a>
           </li>
           <li>
-            <a onClick={handleLogout}>Logout</a> {/* Logout button */}
+            <a onClick={handleLogout}>Logout</a>
           </li>
         </ul>
       </div>
@@ -304,33 +334,28 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
       {/* Main Content */}
       <div className="main-content">
         <header>
-          <div>
+          <div className="top-left">
             <button
               className="hamburger-icon"
               onClick={() => setSidebarVisible((v) => !v)}
+              aria-label="Toggle sidebar"
             >
               &#9776;
             </button>
-            <img 
-              src="/assets/images/imfrisiv.png" 
-              alt="Logo" 
-              className="top-bar-logo" 
-            />
             <h1 className="top-bar-title">ImfrisivMail</h1>
-          </div>
-        </header>
+            <img
+              src="/assets/images/imfrisiv.png"
+              alt="Logo"
+              className="top-bar-logo"
+            />
 
-        {!selectedEmail ? (
-          <>
-            <header class="second-header-bar">
+            <span className="header-divider" aria-hidden="true" />
+
+            <div className="top-controls">
               <div className="search-bar">
-                <input
-                  type="text"
-                  placeholder="Search emails…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+                {/* Sort Dropdown */}
                 <select
+                  className="sort-dropdown"
                   value={sortCriteria}
                   onChange={(e) => setSortCriteria(e.target.value)}
                 >
@@ -338,17 +363,37 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                   <option value="sender">Sort by Sender</option>
                   <option value="subject">Sort by Subject</option>
                 </select>
-                {/* Light / Dark Mode Switch */}
-                <label className="switch">
-                  <input
-                    type="checkbox"
-                    checked={isDarkMode}
-                    onChange={toggleDarkMode}
-                  />
-                  <span className="slider" />
-                </label>
+                
+                {/* Search Bar */}
+                <input
+                  className="search-input"
+                  type="text"
+                  placeholder="🔍 Search emails…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+
+                {/* Dark Mode/Light Mode Switch/Toggle */}
+                {/* Theme toggle moved to header right — kept empty here for spacing */}
               </div>
-            </header>
+            </div>
+          </div>
+          {/* Theme toggle button on the far right of the header */}
+          <div className="top-right">
+            <button
+              className="theme-toggle-button"
+              onClick={toggleDarkMode}
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+              title={isDarkMode ? "Dark Mode" : "Light Mode"}
+            >
+              <span className="theme-icon" aria-hidden>{isDarkMode ? '🌙' : '☀️'}</span>
+            </button>
+          </div>
+        </header>
+
+        {!selectedEmail ? (
+          <>
+            {/* search controls moved to top header */}
 
             {/* Email List */}
             <div className="email-list-container">
@@ -358,12 +403,30 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                   className="email-item"
                   onClick={() => setSelectedEmail(email)}
                 >
-                  <h3>{email.subject}</h3>
-                  <p>From: {email.sender}</p>
-                    <p>Classification: {Array.isArray(email.classification) ? email.classification.map(c => capitalize(String(c).toLowerCase())).join(', ') : capitalize(String(email.classification))}</p>
-                  <p className="date-time">
-                    Date: {formatDateTime(email.date)}
-                  </p>
+                  <div className="email-row">
+                    <div className="email-from"><span className="email-from-value">{email.sender}</span></div>
+                    <div className="email-subject">{email.subject}</div>
+
+                    <div className="email-labels-inline">
+                      {Array.isArray(email.classification)
+                        ? email.classification.map((c, i) => (
+                            <span key={i} className={`label-chip ${slugify(c)}`}>
+                              <span className="label-icon" aria-hidden>{categoryIcon(c)}</span>
+                              <span className="label-text">{capitalize(String(c).toLowerCase())}</span>
+                            </span>
+                          ))
+                        : (
+                          <span className={`label-chip ${slugify(email.classification)}`}>
+                            <span className="label-icon" aria-hidden>{categoryIcon(email.classification)}</span>
+                            <span className="label-text">{capitalize(String(email.classification))}</span>
+                          </span>
+                        )
+                      }
+                    </div>
+
+                    <div className="email-date">{formatDateTime(email.date)}</div>
+                  </div>
+                  <div className="email-preview">{getPreview(email)}</div>
                 </div>
               ))}
             </div>
