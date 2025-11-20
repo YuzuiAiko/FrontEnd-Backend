@@ -56,14 +56,18 @@ body, html {
 /* Form Section */
 .form-section {
   width: 350px;
-  background-color: #81316b;
-  padding: 30px;
-  padding-right: 50px;
+  background: rgba(255, 255, 255, 0.15); /* transparent white */
+  backdrop-filter: blur(10px) saturate(180%); /* glass effect */
+  -webkit-backdrop-filter: blur(10px) saturate(180%); /* Safari support */
+
+  padding: 30px 50px 30px 30px;
   border-radius: 10px;
   text-align: center;
-  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
-  user-select: none; /* Prevent text selection on the entire form */
+
+  border: 1px solid rgba(255, 255, 255, 0.3); /* subtle glass border */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
 }
+
 .form-section input, .form-section button {
   cursor: pointer; /* Show pointer when hovering over input or button */
 }
