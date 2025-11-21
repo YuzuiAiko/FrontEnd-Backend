@@ -2,7 +2,7 @@
   "dependencies": {
     "@azure/msal-browser": "^3.30.0",
     "@azure/msal-react": "^2.2.0",
-    "@emotion/react": "^11.13.5",
+    "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.13.5",
     "@mui/material": "^6.1.8",
     "axios": "^1.7.7",
