@@ -33,11 +33,49 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
 
   const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
+  // Helpers for category styling and icons
+  const slugify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const categoryIcon = (cat) => {
+    const c = String(cat).toLowerCase();
+    switch (c) {
+      case 'important': return '❗';
+      case 'spam': return '🛑';
+      case 'newsletter': return '📰';
+      case 'social': return '👥';
+      case 'promotional': return '🏷️';
+      case 'personal': return '👤';
+      case 'business': return '💼';
+      case 'automated': return '⚙️';
+      default: return '🔖';
+    }
+  };
+
+    // Return a short one-line preview text for an email (sanitized)
+    const getPreview = (email) => {
+      try {
+        const raw = email.preview || email.snippet || email.body || "";
+        // Strip HTML tags by sanitizing with no allowed tags
+        const stripped = DOMPurify.sanitize(raw, { ALLOWED_TAGS: [] });
+        const single = String(stripped).replace(/\s+/g, ' ').trim();
+        return single.length > 120 ? `${single.slice(0, 117)}...` : single;
+      } catch (e) {
+        return "";
+      }
+    };
+
   const [activeCategory, setActiveCategory] = useState("all"); // Tracks the active email category (use 'all' to show everything)
 
   // Light/Dark Mode state
   const [isDarkMode, setIsDarkMode] = useState(false);
   const toggleDarkMode = () => setIsDarkMode((dm) => !dm);
+
+  // Classifier service URL (can be overridden via env)
+  const classifierUrl = process.env.REACT_APP_CLASSIFIER_URL || "http://localhost:5001";
+
+  // Right-side panel state: link classification results
+  const [sideItems, setSideItems] = useState([]);
+  const [sideLoading, setSideLoading] = useState(false);
+  const [sideError, setSideError] = useState(null);
 
   // Fetch emails from the server or load demo emails when demoMode is enabled
   const fetchEmails = useCallback(() => {
@@ -95,6 +133,56 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
     }
     return undefined;
   }, [fetchEmails, demoMode]);
+
+  // When an email is selected, call classifier's /classify_links with the email body
+  useEffect(() => {
+    if (!selectedEmail) {
+      setSideItems([]);
+      setSideError(null);
+      setSideLoading(false);
+      return undefined;
+    }
+
+    let isSubscribed = true;
+    const controller = new AbortController();
+
+    const fetchLinks = async () => {
+      setSideLoading(true);
+      setSideError(null);
+      try {
+        const res = await fetch(`${classifierUrl}/classify_links`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ html: selectedEmail.body }),
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `Status ${res.status}`);
+        }
+        const data = await res.json();
+        if (isSubscribed) {
+          setSideItems(Array.isArray(data.results) ? data.results : []);
+        }
+      } catch (err) {
+        if (isSubscribed) {
+          if (err.name === 'AbortError') return;
+          console.error('Error fetching link classifications:', err);
+          setSideError(err.message || 'Failed to fetch link classifications');
+          setSideItems([]);
+        }
+      } finally {
+        if (isSubscribed) setSideLoading(false);
+      }
+    };
+
+    fetchLinks();
+
+    return () => {
+      isSubscribed = false;
+      controller.abort();
+    };
+  }, [selectedEmail, classifierUrl]);
 
   // Merge sort algorithm for sorting emails
   const mergeSort = useCallback((arr, sortBy) => {
@@ -238,7 +326,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
             <a onClick={() => handleComposeToggle("new")}>Compose</a>
           </li>
           <li>
-            <a onClick={handleLogout}>Logout</a> {/* Logout button */}
+            <a onClick={handleLogout}>Logout</a>
           </li>
         </ul>
       </div>
@@ -246,33 +334,28 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
       {/* Main Content */}
       <div className="main-content">
         <header>
-          <div>
+          <div className="top-left">
             <button
               className="hamburger-icon"
               onClick={() => setSidebarVisible((v) => !v)}
+              aria-label="Toggle sidebar"
             >
               &#9776;
             </button>
-            <img 
-              src="/assets/images/imfrisiv.png" 
-              alt="Logo" 
-              className="top-bar-logo" 
-            />
             <h1 className="top-bar-title">ImfrisivMail</h1>
-          </div>
-        </header>
+            <img
+              src="/assets/images/imfrisiv.png"
+              alt="Logo"
+              className="top-bar-logo"
+            />
 
-        {!selectedEmail ? (
-          <>
-            <header class="second-header-bar">
+            <span className="header-divider" aria-hidden="true" />
+
+            <div className="top-controls">
               <div className="search-bar">
-                <input
-                  type="text"
-                  placeholder="Search emails…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+                {/* Sort Dropdown */}
                 <select
+                  className="sort-dropdown"
                   value={sortCriteria}
                   onChange={(e) => setSortCriteria(e.target.value)}
                 >
@@ -280,17 +363,37 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                   <option value="sender">Sort by Sender</option>
                   <option value="subject">Sort by Subject</option>
                 </select>
-                {/* Light / Dark Mode Switch */}
-                <label className="switch">
-                  <input
-                    type="checkbox"
-                    checked={isDarkMode}
-                    onChange={toggleDarkMode}
-                  />
-                  <span className="slider" />
-                </label>
+                
+                {/* Search Bar */}
+                <input
+                  className="search-input"
+                  type="text"
+                  placeholder="🔍 Search emails…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+
+                {/* Dark Mode/Light Mode Switch/Toggle */}
+                {/* Theme toggle moved to header right — kept empty here for spacing */}
               </div>
-            </header>
+            </div>
+          </div>
+          {/* Theme toggle button on the far right of the header */}
+          <div className="top-right">
+            <button
+              className="theme-toggle-button"
+              onClick={toggleDarkMode}
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+              title={isDarkMode ? "Dark Mode" : "Light Mode"}
+            >
+              <span className="theme-icon" aria-hidden>{isDarkMode ? '🌙' : '☀️'}</span>
+            </button>
+          </div>
+        </header>
+
+        {!selectedEmail ? (
+          <>
+            {/* search controls moved to top header */}
 
             {/* Email List */}
             <div className="email-list-container">
@@ -300,12 +403,30 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                   className="email-item"
                   onClick={() => setSelectedEmail(email)}
                 >
-                  <h3>{email.subject}</h3>
-                  <p>From: {email.sender}</p>
-                    <p>Classification: {Array.isArray(email.classification) ? email.classification.map(c => capitalize(String(c).toLowerCase())).join(', ') : capitalize(String(email.classification))}</p>
-                  <p className="date-time">
-                    Date: {formatDateTime(email.date)}
-                  </p>
+                  <div className="email-row">
+                    <div className="email-from"><span className="email-from-value">{email.sender}</span></div>
+                    <div className="email-subject">{email.subject}</div>
+
+                    <div className="email-labels-inline">
+                      {Array.isArray(email.classification)
+                        ? email.classification.map((c, i) => (
+                            <span key={i} className={`label-chip ${slugify(c)}`}>
+                              <span className="label-icon" aria-hidden>{categoryIcon(c)}</span>
+                              <span className="label-text">{capitalize(String(c).toLowerCase())}</span>
+                            </span>
+                          ))
+                        : (
+                          <span className={`label-chip ${slugify(email.classification)}`}>
+                            <span className="label-icon" aria-hidden>{categoryIcon(email.classification)}</span>
+                            <span className="label-text">{capitalize(String(email.classification))}</span>
+                          </span>
+                        )
+                      }
+                    </div>
+
+                    <div className="email-date">{formatDateTime(email.date)}</div>
+                  </div>
+                  <div className="email-preview">{getPreview(email)}</div>
                 </div>
               ))}
             </div>
@@ -327,32 +448,57 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
             </div>
           </>
         ) : (
-          /* Email Detail View */
-          <div className="email-detail-container">
-            <button
-              className="back-button"
-              onClick={() => setSelectedEmail(null)}
-            >
-              Back
-            </button>
-            <h2>Sender: {selectedEmail.sender}</h2>
-            <h3>Subject: {selectedEmail.subject}</h3>
-              <p>Classification: {Array.isArray(selectedEmail.classification) ? selectedEmail.classification.map(c => capitalize(String(c).toLowerCase())).join(', ') : capitalize(String(selectedEmail.classification))}</p>
-            <p className="date-time">
-              Date: {formatDateTime(selectedEmail.date)}
-            </p>
-            <div
-              className="email-body"
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(selectedEmail.body),
-              }}
-            />
-            <button
-              className="reply-button"
-              onClick={() => handleComposeToggle("reply", selectedEmail)}
-            >
-              Reply
-            </button>
+          /* Email Detail View - two column layout (main + right panel) */
+          <div className="email-detail-layout">
+            <div className="email-detail-container email-detail-main">
+              <button
+                className="back-button"
+                onClick={() => setSelectedEmail(null)}
+              >
+                Back
+              </button>
+              <h2>Sender: {selectedEmail.sender}</h2>
+              <h3>Subject: {selectedEmail.subject}</h3>
+              <p>
+                Classification: {Array.isArray(selectedEmail.classification) ? selectedEmail.classification.map(c => capitalize(String(c).toLowerCase())).join(', ') : capitalize(String(selectedEmail.classification))}
+              </p>
+              <p className="date-time">
+                Date: {formatDateTime(selectedEmail.date)}
+              </p>
+              <div
+                className="email-body"
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(selectedEmail.body),
+                }}
+              />
+              <button
+                className="reply-button"
+                onClick={() => handleComposeToggle("reply", selectedEmail)}
+              >
+                Reply
+              </button>
+            </div>
+
+            {/* Right-side panel: placeholder list (20% width) */}
+            <aside className="email-detail-side">
+              <h4>Link Classifications</h4>
+              {sideLoading ? (
+                <p>Scanning links...</p>
+              ) : sideError ? (
+                <p style={{ color: 'var(--muted)' }}>Error: {sideError}</p>
+              ) : sideItems.length === 0 ? (
+                <p style={{ color: 'var(--muted)' }}>No links found.</p>
+              ) : (
+                <ul className="side-list">
+                  {sideItems.map((it, i) => (
+                    <li key={i} className="side-list-item">
+                      <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 4 }}>{it.url}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>Prediction: {String(it.prediction)}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </aside>
           </div>
         )}
 
