@@ -10,8 +10,8 @@ import DefaultLogo from "./assets/imfrisiv.png"; // Default logo
 import Homepage from "./components/Homepage"; // Homepage component
 import demoData from "./demo-data/sample-emails.json";
 
-// Demo mode detection: env var or ?demo=1
-const isDemo = (process.env.REACT_APP_DEMO === 'true') || new URLSearchParams(window.location.search).get('demo') === '1' || (typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('demo') === '1');
+// Demo mode detection: only enable when explicitly requested via button
+const isDemo = (typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('demo') === '1');
 
 function App() {
   // State variables for managing email, password, and login state
@@ -72,6 +72,13 @@ function App() {
   const useGroupLogo = process.env.REACT_APP_USE_GROUP_LOGO === "true";
   const logo = useGroupLogo ? GroupLogo : DefaultLogo;
   const appName = useGroupLogo ? "SiFri Mail" : "ImfrisivMail";
+  
+  // Clear any existing demo flag on initial load to prevent accidental demo mode
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('demo')) {
+      window.localStorage.removeItem('demo');
+    }
+  }, []);
 
   return (
     <Router>
