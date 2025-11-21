@@ -1,6 +1,12 @@
+# Node.js dependencies
 node_modules
+
+# Environment files
 backend/.env
 frontend/.env
+.env
+
+# Build and log files
 dist
 build
 coverage
@@ -8,24 +14,48 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-.DS_Store
-.env
 
-# Ignore OS-specific files
+# OS-specific files
+.DS_Store
 Thumbs.db
 Desktop.ini
 
-# Ignore IDE-specific files
+# IDE and editor files
 .vscode/
 .idea/
 *.sublime-workspace
 
-# Ignore GitHub-related files
-.github
-.idea
-.vscode
-*.log
+# Environment files
 *.env.local
 *.env.development
 *.env.production
 .vercel
+
+# Python-related files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+*.whl
+
+# GitHub-related files
+.github
+.github
+
+# IDE and editor files
+.idea
+.vscode
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# SSL certificates
+ssl/
+
+# Other
+.DS_Store
+Thumbs.db
+>>>>>>> enh-phishing
