@@ -36,7 +36,13 @@ function App() {
   }, []);
 
   // Function to handle Gmail login via OAuth
-  const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002";
+  // Backend URL is configurable via `REACT_APP_BACKEND_URL`. If not provided, in development we'll point
+  // to localhost on `BACKEND_PORT` (default 5002). In production default to the current origin.
+  const backendUrl =
+    process.env.REACT_APP_BACKEND_URL ||
+    ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? `https://${window.location.hostname}:${process.env.BACKEND_PORT || 5002}`
+      : `${window.location.protocol}//${window.location.host}`);
   const frontendUrl = window.location.origin;
   const handleGmailLogin = () => {
     window.location.href = `${backendUrl}/auth/gmail/login?redirect=${encodeURIComponent(frontendUrl)}`;

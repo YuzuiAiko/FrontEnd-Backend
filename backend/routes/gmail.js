@@ -72,8 +72,9 @@ router.get("/callback", async (req, res) => {
       }
     }
     console.log("Email Bodies to Classify: ", emailBodies);
-    // Call classifier
-    const classificationResponse = await axios.post("http://localhost:5001/classify", {
+    // Call classifier (URL configurable via CLASSIFIER_URL env var)
+    const classifierBase = process.env.CLASSIFIER_URL || "http://localhost:5001";
+    const classificationResponse = await axios.post(`${classifierBase.replace(/\/$/,"")}/classify`, {
       emails: emailBodies,
     });
     const classifications = classificationResponse.data.predictions;

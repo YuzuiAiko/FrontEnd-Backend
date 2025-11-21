@@ -1,0 +1,55 @@
+name: Env File Keys Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-env-keys:
+    runs-on: ubuntu-latest
+    name: Verify required env keys are listed in .env.example
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify env keys
+        run: |
+          set -euo pipefail
+          REQUIRED_KEYS=(
+            "GMAIL_CLIENT_ID"
+            "GMAIL_CLIENT_SECRET"
+            "GMAIL_REDIRECT_URI"
+            "OUTLOOK_CLIENT_ID"
+            "OUTLOOK_CLIENT_SECRET"
+            "OUTLOOK_TENANT_ID"
+            "OUTLOOK_REDIRECT_URI"
+            "REACT_APP_BACKEND_URL"
+            "FRONTEND_REDIRECT_URL"
+            "FRONTEND_POSTAUTH_ROUTE"
+            "SSL_KEY_FILE"
+            "SSL_CRT_FILE"
+            "SSL_KEY_PATH"
+            "SSL_CERT_PATH"
+            "ALLOWED_ORIGINS"
+            "CLASSIFIER_URL"
+            "BACKEND_PORT"
+            "BACKEND_HOST"
+            "REACT_APP_USE_GROUP_LOGO"
+            "CLASSIFICATION_CATEGORIES"
+          )
+
+          MISSING=()
+          for key in "${REQUIRED_KEYS[@]}"; do
+            if ! grep -q "^${key}=" .env.example; then
+              MISSING+=("$key")
+            fi
+          done
+
+          if [ ${#MISSING[@]} -ne 0 ]; then
+            echo "ERROR: The following required env keys are missing from .env.example:"
+            for k in "${MISSING[@]}"; do
+              echo "  - $k"
+            done
+            echo "\nPlease add them to .env.example (use placeholders, do NOT commit secrets)."
+            exit 1
+          fi
+          echo "All required env keys present in .env.example"

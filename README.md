@@ -71,6 +71,21 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
    # FRONTEND_POSTAUTH_ROUTE sets the route to redirect to after authentication (default: /home)
    ```
 
+### Additional environment variables and defaults
+
+- `ALLOWED_ORIGINS` — Optional comma-separated list of origins allowed by CORS (e.g. `https://localhost:5003,http://localhost:3000`).
+   - Default: a sensible local-dev set including `localhost` and `127.0.0.1` on ports 3000, 5000, 5002, 5003, 5173.
+- `CLASSIFIER_URL` — URL to the classifier service used by the Gmail route (POST /classify).
+   - Default: `http://localhost:5001`
+- `BACKEND_PORT` — Port to run the backend on (used when `PORT` is not set).
+   - Default: `5002`
+- `BACKEND_HOST` — Hostname used in local HTTPS startup logs (not required for operation).
+   - Default: `localhost`
+
+Notes:
+- The backend will read `ALLOWED_ORIGINS` and split by comma if present; otherwise it uses the default local origins. This makes it easier to run the frontend on a different port or host in development without editing source files.
+- `REACT_APP_BACKEND_URL` continues to control where the frontend sends auth/login requests. If unset, the frontend will default to `https://<current-host>:<BACKEND_PORT>` when running on `localhost`/`127.0.0.1`, or to the current page origin in non-local environments.
+
 5. Train the email classifier (optional):
    ```bash
    cd backend/classifier

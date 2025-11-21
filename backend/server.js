@@ -10,32 +10,36 @@ const app = express(); // Create an Express application instance
 
 app.use(bodyParser.json()); // Use body-parser to parse JSON request bodies
 
-const allowedOrigins = [
-  // Localhost (HTTPS)
-  "https://localhost:3000",
-  "https://localhost:5002",
-  "https://localhost:5000",
-  "https://localhost:5003",
-  "https://localhost:5173",
-  // Localhost (HTTP)
-  "http://localhost:3000",
-  "http://localhost:5002",
-  "http://localhost:5000",
-  "http://localhost:5003",
-  "http://localhost:5173",
-  // 127.0.0.1 loopback (HTTPS)
-  "https://127.0.0.1:3000",
-  "https://127.0.0.1:5002",
-  "https://127.0.0.1:5000",
-  "https://127.0.0.1:5003",
-  "https://127.0.0.1:5173",
-  // 127.0.0.1 loopback (HTTP)
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:5002",
-  "http://127.0.0.1:5000",
-  "http://127.0.0.1:5003",
-  "http://127.0.0.1:5173",
-];
+// Allow configuring allowed CORS origins via environment variable `ALLOWED_ORIGINS` as a comma-separated list.
+// If not provided, fall back to a safe default set used for local development.
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((s) => s.trim())
+  : [
+      // Localhost (HTTPS)
+      "https://localhost:3000",
+      "https://localhost:5002",
+      "https://localhost:5000",
+      "https://localhost:5003",
+      "https://localhost:5173",
+      // Localhost (HTTP)
+      "http://localhost:3000",
+      "http://localhost:5002",
+      "http://localhost:5000",
+      "http://localhost:5003",
+      "http://localhost:5173",
+      // 127.0.0.1 loopback (HTTPS)
+      "https://127.0.0.1:3000",
+      "https://127.0.0.1:5002",
+      "https://127.0.0.1:5000",
+      "https://127.0.0.1:5003",
+      "https://127.0.0.1:5173",
+      // 127.0.0.1 loopback (HTTP)
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:5002",
+      "http://127.0.0.1:5000",
+      "http://127.0.0.1:5003",
+      "http://127.0.0.1:5173",
+    ];
 
 app.use(
   cors({
@@ -120,7 +124,7 @@ app.use((req, res) => {
 });
 
 // Start server in a way that's safe on Vercel (platform provides HTTPS)
-const PORT = process.env.PORT || 5002; // Ensure backend uses port 5002
+const PORT = process.env.PORT || process.env.BACKEND_PORT || 5002; // Ensure backend uses BACKEND_PORT or default 5002
 
 // Detect Vercel or similar serverless hosting environment. Vercel exposes
 // `VERCEL` or `VERCEL_ENV` / `NOW_REGION` environment variables at runtime.
@@ -144,7 +148,8 @@ if (isVercel) {
         cert: fs.readFileSync(certPath),
       };
       https.createServer(options, app).listen(PORT, () => {
-        console.log(`HTTPS server running at https://localhost:${PORT}`);
+        const host = process.env.BACKEND_HOST || "localhost";
+        console.log(`HTTPS server running at https://${host}:${PORT}`);
       });
     } catch (err) {
       console.error('Failed to start HTTPS server, falling back to HTTP:', err);
