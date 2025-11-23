@@ -4,7 +4,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "node --test ./tests/compose.test.js ./tests/llmkeys.test.js"
+    "test": "node -r dotenv/config --test ./tests/compose.test.js ./tests/llmkeys.test.js"
   },
   "keywords": [],
   "author": "",
@@ -12,6 +12,7 @@
   "description": "",
   "dependencies": {
     "@azure/msal-node": "^2.16.2",
+    "@google/genai": "^1.30.0",
     "@google/generative-ai": "^0.24.1",
     "@perplexity-ai/perplexity_ai": "^0.16.0",
     "axios": "^1.8.2",
