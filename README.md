@@ -92,8 +92,10 @@ Create a `.env` file in the project root and configure the following variables:
 #### API Keys (Never commit real keys to version control!)
 - `OPENAI_API_KEY` - Required for AI-powered features
 - `PERPLEXITY_API_KEY` - Optional: For advanced features
+- `GOOGLE_GEMINI_API_KEY` - Optional: Google Gemini / Generative Language API key (fallback provider)
 
 Note: AI/compose features are implemented server-side. Set `OPENAI_API_KEY` (preferred) or `PERPLEXITY_API_KEY` in the server environment (not as `REACT_APP_` variables) so the backend can call the provider and keep secrets private.
+You can also set `GOOGLE_GEMINI_API_KEY` as an additional fallback provider; the server will prefer OpenAI, then Perplexity, then Gemini when composing text.
 
 ### Setting Up
 
