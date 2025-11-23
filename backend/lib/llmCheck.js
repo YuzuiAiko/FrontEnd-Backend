@@ -1,4 +1,5 @@
 import axios from 'axios';
+import OpenAI from 'openai';
 
 export async function checkLLMKeys() {
   const openaiKey = process.env.OPENAI_API_KEY;
@@ -6,18 +7,16 @@ export async function checkLLMKeys() {
 
   if (openaiKey) {
     try {
-      // quick check to OpenAI models endpoint to validate key
-      const resp = await axios.get('https://api.openai.com/v1/models', {
-        headers: { Authorization: `Bearer ${openaiKey}` },
-        timeout: 5000,
-      });
-      if (resp.status === 200) {
+      const client = new OpenAI({ apiKey: openaiKey });
+      // Use SDK to list models
+      const resp = await client.models.list();
+      if (resp && resp.data) {
         console.log('OPENAI_API_KEY: present and usable (OpenAI reachable).');
       } else {
-        console.warn(`OPENAI_API_KEY: present but unexpected response: ${resp.status}`);
+        console.warn('OPENAI_API_KEY: present but unexpected response from models.list()');
       }
     } catch (err) {
-      const status = err?.response?.status;
+      const status = err?.status || err?.response?.status;
       if (status === 401 || status === 403) {
         console.warn('OPENAI_API_KEY: present but authorization failed (invalid key).');
       } else if (status === 429) {

@@ -12,6 +12,7 @@
   "description": "",
   "dependencies": {
     "@azure/msal-node": "^2.16.2",
+    "@perplexity-ai/perplexity_ai": "^0.16.0",
     "axios": "^1.8.2",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
@@ -23,6 +24,7 @@
     "https": "^1.0.0",
     "msal-node": "^0.0.1-security",
     "nylas": "^7.7.1",
+    "openai": "^6.9.1",
     "python-shell": "^5.0.0"
   }
 }

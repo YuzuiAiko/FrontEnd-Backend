@@ -1,5 +1,6 @@
 import express from 'express';
 import axios from 'axios';
+import OpenAI from 'openai';
 
 const router = express.Router();
 
@@ -15,9 +16,10 @@ export async function performPerplexityRequest(prompt, context = '', opts = {}) 
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
+      // Use axios for Perplexity requests (chat completions shape)
       const resp = await axios.post(
         baseUrl,
-        { query: `${prompt}\n\nContext: ${context || ''}` },
+        { messages: [{ role: 'user', content: `${prompt}\n\nContext: ${context || ''}` }], model: 'sonar' },
         {
           headers: {
             Authorization: `Bearer ${PERP_KEY}`,
@@ -60,7 +62,9 @@ export async function handleCompose(req, res) {
   // Prefer OpenAI if available
   if (OPENAI_KEY) {
     try {
-      const payload = {
+      // Use official OpenAI SDK for chat completions
+      const client = new OpenAI({ apiKey: OPENAI_KEY });
+      const response = await client.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
           { role: 'system', content: 'You are an assistant that writes email text. Be concise and helpful.' },
@@ -68,18 +72,10 @@ export async function handleCompose(req, res) {
         ],
         max_tokens: 512,
         temperature: 0.7,
-      };
-
-      const r = await axios.post('https://api.openai.com/v1/chat/completions', payload, {
-        headers: {
-          'Authorization': `Bearer ${OPENAI_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 20000,
       });
 
-      const choices = r.data?.choices;
-      const text = Array.isArray(choices) && choices[0] && choices[0].message ? choices[0].message.content : r.data?.text || '';
+      const choices = response?.choices;
+      const text = Array.isArray(choices) && choices[0] && choices[0].message ? choices[0].message.content : response?.text || '';
       return res.json({ success: true, provider: 'openai', text });
     } catch (err) {
       console.error('OpenAI compose error:', err?.response?.data || err.message || err);
