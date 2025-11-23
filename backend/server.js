@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from "express"; // Import the express module
 import https from "https"; // Import the https module for creating HTTPS server
 import fs from "fs"; // Import the fs module for file system operations
@@ -5,6 +6,7 @@ import bodyParser from "body-parser"; // Import the body-parser module to parse 
 import cors from "cors"; // Import the cors module to enable Cross-Origin Resource Sharing (CORS)
 import session from "express-session"; // Import the express-session module for session management
 import gmailRoutes from "./routes/gmail.js"; // Import Gmail-related routes from a separate file
+import composeRoutes from "./routes/compose.js";
 
 const app = express(); // Create an Express application instance
 
@@ -113,6 +115,7 @@ app.post("/api/logout", (req, res) => {
 
 // Use Gmail routes for handling authentication and email operations
 app.use("/auth/gmail", gmailRoutes);
+app.use('/api/compose', composeRoutes);
 
 // Define a catch-all route to handle unknown or unsupported routes
 app.use((req, res) => {

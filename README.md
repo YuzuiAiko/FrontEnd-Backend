@@ -93,6 +93,8 @@ Create a `.env` file in the project root and configure the following variables:
 - `OPENAI_API_KEY` - Required for AI-powered features
 - `PERPLEXITY_API_KEY` - Optional: For advanced features
 
+Note: AI/compose features are implemented server-side. Set `OPENAI_API_KEY` (preferred) or `PERPLEXITY_API_KEY` in the server environment (not as `REACT_APP_` variables) so the backend can call the provider and keep secrets private.
+
 ### Setting Up
 
 1. Copy the example environment file:
