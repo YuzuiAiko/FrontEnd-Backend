@@ -51,6 +51,23 @@ test('checkLLMKeys warns on OpenAI auth failure (401)', async () => {
   OpenAI.prototype.models = origOpenAIModelsList;
   delete process.env.__TEST_OPENAI_MOCK;
   axios.get = origGet;
+  delete process.env.GOOGLE_GEMINI_API_KEY;
+});
+
+test('checkLLMKeys reports Gemini reachable on 200', async () => {
+  let logged = '';
+  console.log = (msg, ...rest) => { logged += msg + (rest.length ? ' ' + JSON.stringify(rest) : ''); };
+
+  process.env.GOOGLE_GEMINI_API_KEY = 'gem-key';
+  axios.post = async () => ({ status: 200, data: {} });
+
+  await checkLLMKeys();
+  assert.ok(logged.includes('GOOGLE_GEMINI_API_KEY: present and Gemini endpoint reachable'));
+
+  // restore
+  axios.post = origPost;
+  console.log = origLog;
+  delete process.env.GOOGLE_GEMINI_API_KEY;
 });
 
 test('checkLLMKeys logs OpenAI not set when missing', async () => {

@@ -12,6 +12,7 @@
   "description": "",
   "dependencies": {
     "@azure/msal-node": "^2.16.2",
+    "@google/generative-ai": "^0.24.1",
     "@perplexity-ai/perplexity_ai": "^0.16.0",
     "axios": "^1.8.2",
     "body-parser": "^1.20.3",

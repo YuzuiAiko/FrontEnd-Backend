@@ -70,6 +70,31 @@ export async function checkLLMKeys() {
   } else {
     console.log('PERPLEXITY_API_KEY: not set.');
   }
+
+  // Google Gemini (Generative Language) key check
+  const geminiKey = process.env.GOOGLE_GEMINI_API_KEY;
+  if (geminiKey) {
+    try {
+      // Use a conservative REST endpoint check; tests will stub axios.post.
+      const g = await axios.post(`https://generativelanguage.googleapis.com/v1/models/text-bison-001:generate?key=${geminiKey}`, { prompt: { text: 'healthcheck' } }, { timeout: 5000 });
+      if (g.status >= 200 && g.status < 300) {
+        console.log('GOOGLE_GEMINI_API_KEY: present and Gemini endpoint reachable (experimental check).');
+      } else {
+        console.warn(`GOOGLE_GEMINI_API_KEY: present but unexpected response: ${g.status}`);
+      }
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        console.warn('GOOGLE_GEMINI_API_KEY: present but authorization failed (invalid key).');
+      } else if (status === 429) {
+        console.warn('GOOGLE_GEMINI_API_KEY: present but rate-limited (429).');
+      } else {
+        console.warn('GOOGLE_GEMINI_API_KEY: present but could not reach Gemini API:', err.message || err);
+      }
+    }
+  } else {
+    console.log('GOOGLE_GEMINI_API_KEY: not set.');
+  }
 }
 
 export default checkLLMKeys;

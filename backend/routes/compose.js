@@ -1,6 +1,7 @@
 import express from 'express';
 import axios from 'axios';
 import OpenAI from 'openai';
+// Gemini / Google Generative AI fallback helper will use axios to their REST endpoint
 
 const router = express.Router();
 
@@ -58,6 +59,7 @@ export async function handleCompose(req, res) {
 
   const OPENAI_KEY = process.env.OPENAI_API_KEY;
   const PERP_KEY = process.env.PERPLEXITY_API_KEY;
+  const GEMINI_KEY = process.env.GOOGLE_GEMINI_API_KEY;
 
   // Prefer OpenAI if available
   if (OPENAI_KEY) {
@@ -120,6 +122,62 @@ export async function handleCompose(req, res) {
         return res.status(429).json({ success: false, error: 'Perplexity rate-limited. Try again later.' });
       }
       return res.status(502).json({ success: false, error: 'Perplexity service error' });
+    }
+  }
+
+  // If neither OpenAI nor Perplexity produced a result, try Google Gemini if configured
+  const GEM_KEY = GEMINI_KEY;
+  if (GEM_KEY) {
+    try {
+      // Try to call Google Generative Language REST endpoint (best-effort). The exact request shape
+      // may vary depending on API version/account; we use a conservative POST and try to extract a text field.
+      const url = `https://generativelanguage.googleapis.com/v1/models/text-bison-001:generate?key=${GEM_KEY}`;
+      const gResp = await (async () => {
+        // reuse same retry/backoff pattern as Perplexity
+        const retries = 2;
+        let lastErr;
+        for (let attempt = 0; attempt <= retries; attempt += 1) {
+          try {
+            return await axios.post(url, { prompt: { text: `${prompt}\n\nContext: ${context || ''}` } }, { timeout: 5000 });
+          } catch (err) {
+            lastErr = err;
+            const status = err?.response?.status;
+            if (attempt === retries) break;
+            if (status && status >= 400 && status < 500 && status !== 429) break;
+            const backoffMs = Math.pow(2, attempt) * 300;
+            await new Promise((resolve) => setTimeout(resolve, backoffMs));
+          }
+        }
+        throw lastErr || new Error('Gemini request failed');
+      })();
+
+      const data = gResp.data || {};
+      // Try a few possible fields for text output
+      let generated = '';
+      if (typeof data.output_text === 'string') generated = data.output_text;
+      else if (data.candidates && Array.isArray(data.candidates) && data.candidates[0] && data.candidates[0].content) generated = data.candidates[0].content;
+      else if (data.output && typeof data.output === 'string') generated = data.output;
+
+      if (!generated) {
+        generated = data?.result || data?.generated_text || '';
+      }
+
+      if (!generated) {
+        console.warn('Gemini: response received but no text could be extracted.', { body: data });
+        return res.status(502).json({ success: false, error: 'Gemini returned an unexpected response shape.' });
+      }
+
+      return res.json({ success: true, provider: 'gemini', text: generated });
+    } catch (err) {
+      console.error('Gemini compose error:', err?.response?.data || err.message || err);
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        return res.status(401).json({ success: false, error: 'Gemini authorization failed (invalid API key).' });
+      }
+      if (status === 429) {
+        return res.status(429).json({ success: false, error: 'Gemini rate-limited. Try again later.' });
+      }
+      return res.status(502).json({ success: false, error: 'Gemini service error' });
     }
   }
 
