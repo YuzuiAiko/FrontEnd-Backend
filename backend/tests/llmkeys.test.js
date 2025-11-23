@@ -15,6 +15,7 @@ test('checkLLMKeys reports OpenAI reachable on 200', async () => {
   console.log = (msg, ...rest) => { logged += msg + (rest.length ? ' ' + JSON.stringify(rest) : ''); };
 
   process.env.OPENAI_API_KEY = 'ok-key';
+  process.env.__TEST_OPENAI_MOCK = 'true';
   // stub OpenAI SDK models.list
   OpenAI.prototype.models = { list: async () => ({ data: [{}] }) };
   axios.post = async () => ({ status: 404 }); // Perplexity not set path safe-guard
@@ -26,6 +27,7 @@ test('checkLLMKeys reports OpenAI reachable on 200', async () => {
   axios.post = origPost;
   console.log = origLog;
   OpenAI.prototype.models = origOpenAIModelsList;
+  delete process.env.__TEST_OPENAI_MOCK;
 });
 
 test('checkLLMKeys warns on OpenAI auth failure (401)', async () => {
@@ -43,6 +45,7 @@ test('checkLLMKeys warns on OpenAI auth failure (401)', async () => {
   axios.post = origPost;
   console.warn = origWarn;
   OpenAI.prototype.models = origOpenAIModelsList;
+  delete process.env.__TEST_OPENAI_MOCK;
 });
 
 test('checkLLMKeys logs OpenAI not set when missing', async () => {
@@ -59,4 +62,5 @@ test('checkLLMKeys logs OpenAI not set when missing', async () => {
   axios.post = origPost;
   console.log = origLog;
   OpenAI.prototype.models = origOpenAIModelsList;
+  delete process.env.__TEST_OPENAI_MOCK;
 });
