@@ -310,27 +310,46 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
       )}
       {/* Sidebar */}
       <div className={`sidebar ${sidebarVisible ? "visible" : ""}`}>
-        <ul>
-          {(["all", ...CATEGORIES]).map((catKey) => (
-            <li key={catKey}>
-              <a
-                onClick={() => {
-                  setActiveCategory(catKey);
-                  setCurrentPage(1);
-                }}
-                className={activeCategory === catKey ? 'active' : ''}
-              >
-                {catKey === 'all' ? 'All' : capitalize(catKey)}
-              </a>
-            </li>
-          ))}
-          <li>
-            <a onClick={() => handleComposeToggle("new")}>Compose</a>
-          </li>
-          <li>
-            <a onClick={handleLogout}>Logout</a>
-          </li>
-        </ul>
+        <div className="sidebar-inner">
+          <ul className="sidebar-category-list">
+            {["all", ...CATEGORIES].map((catKey) => (
+              <li key={catKey}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory(catKey);
+                    setCurrentPage(1);
+                  }}
+                  className={
+                    activeCategory === catKey
+                      ? "sidebar-category-button active"
+                      : "sidebar-category-button"
+                  }
+                >
+                  <span className="sidebar-category-chip">
+                    {catKey === "all" ? "All" : capitalize(catKey)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="sidebar-actions">
+            <button
+              type="button"
+              className="sidebar-action-button primary"
+              onClick={() => handleComposeToggle("new")}
+            >
+              Compose
+            </button>
+            <button
+              type="button"
+              className="sidebar-action-button"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -406,8 +425,14 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                   onClick={() => setSelectedEmail(email)}
                 >
                   <div className="email-row">
-                    <div className="email-from"><span className="email-from-value">{email.sender}</span></div>
-                    <div className="email-subject">{email.subject}</div>
+                    <div className="email-from">
+                      <span className="detail-meta-label-chip list-meta-label">Sender</span>
+                      <span className="email-from-value">{email.sender}</span>
+                    </div>
+                    <div className="email-subject">
+                      <span className="detail-meta-label-chip list-meta-label">Subject</span>
+                      <span className="email-subject-value">{email.subject}</span>
+                    </div>
 
                     <div className="email-labels-inline">
                       {Array.isArray(email.classification)
@@ -426,7 +451,10 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                       }
                     </div>
 
-                    <div className="email-date">{formatDateTime(email.date)}</div>
+                    <div className="email-date">
+                      <span className="detail-meta-label-chip list-meta-label">Date</span>
+                      <span className="email-date-value">{formatDateTime(email.date)}</span>
+                    </div>
                   </div>
                   <div className="email-preview">{getPreview(email)}</div>
                 </div>
@@ -453,51 +481,96 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
           /* Email Detail View - two column layout (main + right panel) */
           <div className="email-detail-layout">
             <div className="email-detail-container email-detail-main">
-              <button
-                className="back-button"
-                onClick={() => setSelectedEmail(null)}
-              >
-                Back
-              </button>
-              <h2>Sender: {selectedEmail.sender}</h2>
-              <h3>Subject: {selectedEmail.subject}</h3>
-              <p>
-                Classification: {Array.isArray(selectedEmail.classification) ? selectedEmail.classification.map(c => capitalize(String(c).toLowerCase())).join(', ') : capitalize(String(selectedEmail.classification))}
+              <div className="detail-header-row">
+                <button
+                  className="back-button"
+                  onClick={() => setSelectedEmail(null)}
+                  aria-label="Back to message list"
+                >
+                  ← Inbox
+                </button>
+                <button
+                  className="reply-button"
+                  onClick={() => handleComposeToggle("reply", selectedEmail)}
+                >
+                  Reply
+                </button>
+              </div>
+              <h2 className="email-detail-subject">
+                <span className="detail-meta-label-chip">Subject</span>
+                <span className="detail-meta-value">{selectedEmail.subject}</span>
+              </h2>
+              <h2 className="email-detail-sender">
+                <span className="detail-meta-label-chip">Sender</span>
+                <span className="detail-meta-value">{selectedEmail.sender}</span>
+              </h2>
+              <div className="detail-divider" />
+              <p className="date-time detail-meta-date">
+                <span className="detail-meta-label-chip">Date</span>
+                <span className="detail-meta-value">{formatDateTime(selectedEmail.date)}</span>
               </p>
-              <p className="date-time">
-                Date: {formatDateTime(selectedEmail.date)}
-              </p>
+              <div className="detail-divider" />
+              <div className="detail-classification-row">
+                <span className="detail-classification-label">Classification:</span>
+                <div className="detail-classification-chips">
+                  {Array.isArray(selectedEmail.classification)
+                    ? selectedEmail.classification.map((c, idx) => (
+                        <span key={idx} className={`label-chip ${slugify(c)}`}>
+                          <span className="label-icon" aria-hidden>{categoryIcon(c)}</span>
+                          <span className="label-text">
+                            {capitalize(String(c).toLowerCase())}
+                          </span>
+                        </span>
+                      ))
+                    : (
+                        <span className={`label-chip ${slugify(selectedEmail.classification)}`}>
+                          <span className="label-icon" aria-hidden>
+                            {categoryIcon(selectedEmail.classification)}
+                          </span>
+                          <span className="label-text">
+                            {capitalize(String(selectedEmail.classification))}
+                          </span>
+                        </span>
+                      )}
+                </div>
+              </div>
+              <div className="detail-divider" />
               <div
                 className="email-body"
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(selectedEmail.body),
                 }}
               />
-              <button
-                className="reply-button"
-                onClick={() => handleComposeToggle("reply", selectedEmail)}
-              >
-                Reply
-              </button>
             </div>
 
-            {/* Right-side panel: placeholder list (20% width) */}
+            {/* Right-side panel: link classifications */}
             <aside className="email-detail-side">
               <h4>Link Classifications</h4>
               {sideLoading ? (
                 <p>Scanning links...</p>
               ) : sideError ? (
-                <p style={{ color: 'var(--muted)' }}>Error: {sideError}</p>
+                <p className="side-error">Error: {sideError}</p>
               ) : sideItems.length === 0 ? (
-                <p style={{ color: 'var(--muted)' }}>No links found.</p>
+                <p className="side-empty">No links found.</p>
               ) : (
                 <ul className="side-list">
-                  {sideItems.map((it, i) => (
-                    <li key={i} className="side-list-item">
-                      <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 4 }}>{it.url}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>Prediction: {String(it.prediction)}</div>
-                    </li>
-                  ))}
+                  {sideItems.map((it, i) => {
+                    const normalized = String(it.prediction || '').toLowerCase();
+                    let labelClass = 'link-prediction-default';
+                    if (normalized === 'phishing') labelClass = 'link-prediction-phishing';
+                    else if (normalized === 'legitimate') labelClass = 'link-prediction-legitimate';
+
+                    return (
+                      <li key={i} className="side-list-item">
+                        <div className="side-url" title={it.url}>{it.url}</div>
+                        <div className="side-meta-row">
+                          <span className={`link-prediction-chip ${labelClass}`}>
+                            {normalized || 'unknown'}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </aside>
