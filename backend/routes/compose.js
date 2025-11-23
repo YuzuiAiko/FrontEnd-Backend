@@ -10,7 +10,7 @@ export async function performPerplexityRequest(prompt, context = '', opts = {}) 
 
   const retries = Number.isInteger(opts.retries) ? opts.retries : 3;
   const timeout = opts.timeout || 5000;
-  const baseUrl = opts.url || 'https://api.perplexity.ai/search';
+  const baseUrl = opts.url || 'https://api.perplexity.ai/chat/completions';
 
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt += 1) {

@@ -31,9 +31,14 @@ export async function checkLLMKeys() {
   }
 
   if (perplexityKey) {
-    // Attempt a lightweight Perplexity reachability check (best-effort).
+    // Give a helpful hint if the key doesn't match Perplexity's expected prefix
+    if (!perplexityKey.startsWith('pplx-')) {
+      console.warn('PERPLEXITY_API_KEY: key does not appear to start with the expected `pplx-` prefix. Verify you copied the correct Perplexity API key.');
+    }
+
+    // Attempt a lightweight Perplexity reachability check (best-effort) using their chat completions endpoint.
     try {
-      const p = await axios.post('https://api.perplexity.ai/search', { query: 'healthcheck' }, {
+      const p = await axios.post('https://api.perplexity.ai/chat/completions', { query: 'healthcheck' }, {
         headers: { Authorization: `Bearer ${perplexityKey}`, 'Content-Type': 'application/json' },
         timeout: 5000,
       });
