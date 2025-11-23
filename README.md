@@ -42,12 +42,72 @@ This was proposed as the SiFri-Mail project for the S–CSSE321 and S–CSIS311 
    npm install
    ```
 
-4. Set up environment variables:
-   - Create `.env` files in both the `backend` and `frontend` directories, or use the provided `.env.example` as a template.
-   - Add the required environment variables as specified below.
+## Configuration
 
-   **Dynamic Redirect Support:**
-   - The backend supports dynamic OAuth2 redirects using the `FRONTEND_REDIRECT_URL` variable.
+### Environment Variables
+
+Create a `.env` file in the project root and configure the following variables:
+
+#### Server Configuration
+- `PORT=5002` - Port on which the backend server will run
+- `BACKEND_HOST=localhost` - Hostname for the backend server
+- `BACKEND_PORT=5002` - Port for the backend server (should match PORT)
+
+#### SSL Configuration (for HTTPS)
+- `SSL_KEY_FILE=ssl/localhost-key.pem` - Path to SSL private key
+- `SSL_CRT_FILE=ssl/localhost-cert.pem` - Path to SSL certificate
+- `SSL_KEY_PATH=ssl/localhost-key.pem` - Legacy path to SSL private key
+- `SSL_CERT_PATH=ssl/localhost-cert.pem` - Legacy path to SSL certificate
+
+#### OAuth2 Configuration
+**Gmail OAuth2:**
+- `GMAIL_CLIENT_ID` - Your Google OAuth client ID
+- `GMAIL_CLIENT_SECRET` - Your Google OAuth client secret
+- `GMAIL_REDIRECT_URI` - Redirect URI registered in Google Cloud Console
+
+**Outlook OAuth2:**
+- `OUTLOOK_CLIENT_ID` - Your Microsoft OAuth client ID
+- `OUTLOOK_CLIENT_SECRET` - Your Microsoft OAuth client secret
+- `OUTLOOK_TENANT_ID` - Your Microsoft tenant ID
+- `OUTLOOK_REDIRECT_URI` - Redirect URI registered in Azure Portal
+
+#### Frontend Configuration
+- `REACT_APP_BACKEND_URL` - Full URL to your backend server
+- `FRONTEND_REDIRECT_URL` - Fallback URL for OAuth2 redirects
+- `FRONTEND_POSTAUTH_ROUTE=/home` - Route to redirect after successful authentication
+
+#### Frontend Customization
+- `REACT_APP_USE_GROUP_LOGO=false` - Set to `true` to use group logo
+- `REACT_APP_TITLE` - Application title
+- `REACT_APP_DESCRIPTION` - Application description for SEO
+- `REACT_APP_KEYWORDS` - Comma-separated keywords for SEO
+
+#### Backend Services
+- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
+- `CLASSIFIER_URL` - URL of the email classification service
+
+#### Email Classification
+- `CLASSIFICATION_CATEGORIES` - Comma-separated list of email categories
+
+#### API Keys (Never commit real keys to version control!)
+- `OPENAI_API_KEY` - Required for AI-powered features
+- `PERPLEXITY_API_KEY` - Optional: For advanced features
+
+### Setting Up
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit the `.env` file and fill in your configuration values.
+
+3. For development with HTTPS, place your SSL certificate files in the `backend/ssl/` directory or update the SSL paths in the `.env` file.
+
+4. For OAuth2 setup:
+   - Register your application with Google Cloud Console and Azure Portal
+   - Add the appropriate redirect URIs
+   - Copy the client IDs and secrets to your `.env` file
    - When the frontend initiates Gmail OAuth, it sends its current URL/port in the `redirect` query parameter.
    - The backend will redirect users to this URL after authentication. If not provided, it falls back to `FRONTEND_REDIRECT_URL` from `.env`.
    - The route to redirect to after authentication defaults to `/home`, but can be customized with the `FRONTEND_POSTAUTH_ROUTE` variable in `.env`.
