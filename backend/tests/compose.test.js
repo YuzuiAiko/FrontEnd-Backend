@@ -1,0 +1,88 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import axios from 'axios';
+import { performPerplexityRequest, handleCompose } from '../routes/compose.js';
+
+// Save original axios.post
+const originalPost = axios.post;
+
+test('performPerplexityRequest retries and succeeds', async (t) => {
+  let calls = 0;
+  axios.post = async (...args) => {
+    calls += 1;
+    if (calls < 3) {
+      const err = new Error('simulated network error');
+      // no response -> treated as network error
+      throw err;
+    }
+    return { status: 200, data: { text: 'Hello from perplexity' } };
+  };
+
+  // ensure PERPLEXITY_API_KEY is set for the test
+  process.env.PERPLEXITY_API_KEY = 'test-key';
+
+  const resp = await performPerplexityRequest('test prompt', 'ctx', { retries: 3, timeout: 1000 });
+  assert.equal(resp.data.text, 'Hello from perplexity');
+  assert.ok(calls >= 3);
+
+  // restore
+  axios.post = originalPost;
+});
+
+test('handleCompose returns 400 when prompt missing', async () => {
+  const req = { body: {} };
+  const res = {
+    statusCode: null,
+    body: null,
+    status(code) { this.statusCode = code; return this; },
+    json(obj) { this.body = obj; return this; }
+  };
+
+  await handleCompose(req, res);
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.body.success, false);
+});
+
+test('handleCompose uses Perplexity and returns generated text', async () => {
+  // Mock axios.post to return a Perplexity-like response
+  axios.post = async () => ({ status: 200, data: { results: [{ text: 'Generated email body' }] } });
+  process.env.PERPLEXITY_API_KEY = 'test-key';
+
+  const req = { body: { prompt: 'Write an email', context: 'context' } };
+  const res = {
+    statusCode: null,
+    body: null,
+    status(code) { this.statusCode = code; return this; },
+    json(obj) { this.body = obj; return this; }
+  };
+
+  await handleCompose(req, res);
+  assert.equal(res.body.success, true);
+  assert.equal(res.body.provider, 'perplexity');
+  assert.equal(res.body.text, 'Generated email body');
+
+  axios.post = originalPost;
+});
+
+test('handleCompose returns 401 when Perplexity auth fails', async () => {
+  axios.post = async () => {
+    const err = new Error('Unauthorized');
+    err.response = { status: 401, data: { error: 'Invalid key' } };
+    throw err;
+  };
+  process.env.PERPLEXITY_API_KEY = 'bad-key';
+
+  const req = { body: { prompt: 'Write an email' } };
+  const res = {
+    statusCode: null,
+    body: null,
+    status(code) { this.statusCode = code; return this; },
+    json(obj) { this.body = obj; return this; }
+  };
+
+  await handleCompose(req, res);
+  assert.equal(res.statusCode, 401);
+  assert.equal(res.body.success, false);
+
+  axios.post = originalPost;
+});
