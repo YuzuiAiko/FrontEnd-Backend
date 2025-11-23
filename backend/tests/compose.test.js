@@ -47,6 +47,8 @@ test('handleCompose uses Perplexity and returns generated text', async () => {
   // Mock axios.post to return a Perplexity-like response
   axios.post = async () => ({ status: 200, data: { results: [{ text: 'Generated email body' }] } });
   process.env.PERPLEXITY_API_KEY = 'test-key';
+  delete process.env.GOOGLE_GEMINI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
 
   const req = { body: { prompt: 'Write an email', context: 'context' } };
   const res = {
@@ -71,6 +73,8 @@ test('handleCompose returns 401 when Perplexity auth fails', async () => {
     throw err;
   };
   process.env.PERPLEXITY_API_KEY = 'bad-key';
+  delete process.env.GOOGLE_GEMINI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
 
   const req = { body: { prompt: 'Write an email' } };
   const res = {
