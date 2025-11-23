@@ -126,11 +126,9 @@ export async function handleCompose(req, res) {
       errors.push({ provider: 'perplexity', reason: 'empty-response' });
     } catch (err) {
       const status = err?.response?.status || err?.status;
-      // Preserve previous behavior: immediate return on auth failures or rate limits
-      if (status === 401 || status === 403) return res.status(401).json({ success: false, error: 'Perplexity authorization failed (invalid API key).' });
-      if (status === 429) return res.status(429).json({ success: false, error: 'Perplexity rate-limited. Try again later.' });
+      // Record auth and rate-limit failures but do not short-circuit other providers.
       errors.push({ provider: 'perplexity', status: status || 502, message: err?.message || String(err) });
-      console.warn('Perplexity compose error, falling back:', err?.response?.data || err.message || err);
+      console.warn('Perplexity compose error (recording and continuing):', err?.response?.data || err.message || err);
     }
   }
 
