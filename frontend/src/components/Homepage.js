@@ -20,15 +20,15 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
   const [body, setBody] = useState(""); // Stores the body of the email
   const [sidebarVisible, setSidebarVisible] = useState(false); // Toggles the sidebar visibility
   // Categories used by the classifier (from real-data-pipeline)
+  // Categories should mirror the 5 classifier labels coming from the Python service:
+  // Important, Promotional, Social, Personal, Notification.
+  // We keep them lowercased here for easier matching and display.
   const CATEGORIES = [
     "important",
-    "spam",
-    "newsletter",
-    "social",
     "promotional",
+    "social",
     "personal",
-    "business",
-    "automated",
+    "notification",
   ];
 
   const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
@@ -39,11 +39,13 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
     const c = String(cat).toLowerCase();
     switch (c) {
       case 'important': return '❗';
+      case 'promotional': return '🏷️';
+      case 'social': return '👥';
+      case 'personal': return '👤';
+      case 'notification': return '🔔';
+      // Legacy categories (kept for backward compatibility if old data exists)
       case 'spam': return '🛑';
       case 'newsletter': return '📰';
-      case 'social': return '👥';
-      case 'promotional': return '🏷️';
-      case 'personal': return '👤';
       case 'business': return '💼';
       case 'automated': return '⚙️';
       default: return '🔖';
