@@ -1,3 +1,4 @@
+import express from 'express';
 import axios from 'axios';
 
 // Minimal, test-focused implementation to satisfy unit tests (SDK-first code lives in lib/geminiClient.js)
@@ -70,4 +71,10 @@ export async function handleCompose(req, res) {
 
   return res.status(503).json({ success: false, error: 'No AI provider configured. Set PERPLEXITY_API_KEY or GOOGLE_GEMINI_API_KEY.' });
 }
+
+// Provide a default Express router for server.js while preserving named exports for tests
+const router = express.Router();
+router.post('/', handleCompose);
+
+export default router;
 
