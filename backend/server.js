@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from "express"; // Import the express module
+import axios from 'axios';
 import https from "https"; // Import the https module for creating HTTPS server
 import fs from "fs"; // Import the fs module for file system operations
 import bodyParser from "body-parser"; // Import the body-parser module to parse request bodies
@@ -128,6 +129,48 @@ const PORT = process.env.PORT || 5002; // Ensure backend uses port 5002
 // Detect Vercel or similar serverless hosting environment. Vercel exposes
 // `VERCEL` or `VERCEL_ENV` / `NOW_REGION` environment variables at runtime.
 const isVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV || process.env.NOW_REGION);
+
+// Light-weight LLM API key checks at startup
+async function checkLLMKeys() {
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const perplexityKey = process.env.PERPLEXITY_API_KEY;
+
+  if (openaiKey) {
+    try {
+      // quick check to OpenAI models endpoint to validate key
+      const resp = await axios.get('https://api.openai.com/v1/models', {
+        headers: { Authorization: `Bearer ${openaiKey}` },
+        timeout: 5000,
+      });
+      if (resp.status === 200) {
+        console.log('OPENAI_API_KEY: present and usable (OpenAI reachable).');
+      } else {
+        console.warn(`OPENAI_API_KEY: present but unexpected response: ${resp.status}`);
+      }
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        console.warn('OPENAI_API_KEY: present but authorization failed (invalid key).');
+      } else if (status === 429) {
+        console.warn('OPENAI_API_KEY: present but rate-limited (429).');
+      } else {
+        console.warn('OPENAI_API_KEY: present but could not reach OpenAI API:', err.message || err);
+      }
+    }
+  } else {
+    console.log('OPENAI_API_KEY: not set.');
+  }
+
+  if (perplexityKey) {
+    // We don't have Perplexity integration enabled here; just report presence
+    console.log('PERPLEXITY_API_KEY: present (Perplexity integration not implemented/tested).');
+  } else {
+    console.log('PERPLEXITY_API_KEY: not set.');
+  }
+}
+
+// Run checks but don't block startup
+checkLLMKeys().catch((e) => console.warn('LLM key check error:', e));
 
 if (isVercel) {
   // On Vercel the platform terminates TLS for us; do not attempt to load local SSL files.
