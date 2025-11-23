@@ -8,6 +8,7 @@ import cors from "cors"; // Import the cors module to enable Cross-Origin Resour
 import session from "express-session"; // Import the express-session module for session management
 import gmailRoutes from "./routes/gmail.js"; // Import Gmail-related routes from a separate file
 import composeRoutes from "./routes/compose.js";
+import { checkLLMKeys } from './lib/llmCheck.js';
 
 const app = express(); // Create an Express application instance
 
@@ -129,64 +130,6 @@ const PORT = process.env.PORT || 5002; // Ensure backend uses port 5002
 // Detect Vercel or similar serverless hosting environment. Vercel exposes
 // `VERCEL` or `VERCEL_ENV` / `NOW_REGION` environment variables at runtime.
 const isVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV || process.env.NOW_REGION);
-
-// Light-weight LLM API key checks at startup
-async function checkLLMKeys() {
-  const openaiKey = process.env.OPENAI_API_KEY;
-  const perplexityKey = process.env.PERPLEXITY_API_KEY;
-
-  if (openaiKey) {
-    try {
-      // quick check to OpenAI models endpoint to validate key
-      const resp = await axios.get('https://api.openai.com/v1/models', {
-        headers: { Authorization: `Bearer ${openaiKey}` },
-        timeout: 5000,
-      });
-      if (resp.status === 200) {
-        console.log('OPENAI_API_KEY: present and usable (OpenAI reachable).');
-      } else {
-        console.warn(`OPENAI_API_KEY: present but unexpected response: ${resp.status}`);
-      }
-    } catch (err) {
-      const status = err?.response?.status;
-      if (status === 401 || status === 403) {
-        console.warn('OPENAI_API_KEY: present but authorization failed (invalid key).');
-      } else if (status === 429) {
-        console.warn('OPENAI_API_KEY: present but rate-limited (429).');
-      } else {
-        console.warn('OPENAI_API_KEY: present but could not reach OpenAI API:', err.message || err);
-      }
-    }
-  } else {
-    console.log('OPENAI_API_KEY: not set.');
-  }
-
-  if (perplexityKey) {
-    // Attempt a lightweight Perplexity reachability check (best-effort).
-    try {
-      const p = await axios.post('https://api.perplexity.ai/search', { query: 'healthcheck' }, {
-        headers: { Authorization: `Bearer ${perplexityKey}`, 'Content-Type': 'application/json' },
-        timeout: 5000,
-      });
-      if (p.status >= 200 && p.status < 300) {
-        console.log('PERPLEXITY_API_KEY: present and Perplexity endpoint reachable (experimental check).');
-      } else {
-        console.warn(`PERPLEXITY_API_KEY: present but unexpected response: ${p.status}`);
-      }
-    } catch (err) {
-      const status = err?.response?.status;
-      if (status === 401 || status === 403) {
-        console.warn('PERPLEXITY_API_KEY: present but authorization failed (invalid key).');
-      } else if (status === 429) {
-        console.warn('PERPLEXITY_API_KEY: present but rate-limited (429).');
-      } else {
-        console.warn('PERPLEXITY_API_KEY: present but could not reach Perplexity API:', err.message || err);
-      }
-    }
-  } else {
-    console.log('PERPLEXITY_API_KEY: not set.');
-  }
-}
 
 // Run checks but don't block startup
 checkLLMKeys().catch((e) => console.warn('LLM key check error:', e));
