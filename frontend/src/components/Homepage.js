@@ -18,6 +18,12 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
   const [recipient, setRecipient] = useState(""); // Stores the recipient's email
   const [subject, setSubject] = useState(""); // Stores the subject of the email
   const [body, setBody] = useState(""); // Stores the body of the email
+  // Compose LLM / Autocomplete state
+  const [composePromptOpen, setComposePromptOpen] = useState(false);
+  const [composePrompt, setComposePrompt] = useState("");
+  const [composeGenerating, setComposeGenerating] = useState(false);
+  const [composeError, setComposeError] = useState(null);
+  const [autocompleteSuggestion, setAutocompleteSuggestion] = useState("");
   const [sidebarVisible, setSidebarVisible] = useState(false); // Toggles the sidebar visibility
   // Categories used by the classifier (from real-data-pipeline)
   // Categories should mirror the 5 classifier labels coming from the Python service:
@@ -73,6 +79,8 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
 
   // Classifier service URL (can be overridden via env)
   const classifierUrl = process.env.REACT_APP_CLASSIFIER_URL || "http://localhost:5001";
+  // Compose/LLM: call backend endpoint which uses server-side keys (OPENAI_API_KEY / PERPLEXITY_API_KEY)
+  const composeApiUrl = backendUrl ? `${backendUrl.replace(/\/$/, '')}/api/compose` : "";
 
   // Right-side panel state: link classification results
   const [sideItems, setSideItems] = useState([]);
@@ -253,6 +261,69 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
     setShowCompose(true);
   };
 
+  // Read user selected languages from settings/localStorage (fallback to navigator.language)
+  const getUserLanguages = () => {
+    try {
+      const raw = localStorage.getItem('user_languages');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
+    return [navigator.language || 'en'];
+  };
+
+  // Lightweight language-aware phrase bank for autocomplete (minimal offline fallback)
+  const phraseBank = {
+    en: [
+      "Please let me know if you'd like any changes.",
+      "Looking forward to your response.",
+      "Let me know a convenient time to discuss.",
+      "Thanks and best regards,"
+    ],
+    es: [
+      "Por favor, házmelo saber si deseas cambios.",
+      "Quedo atento a tu respuesta.",
+      "Gracias y saludos,"
+    ],
+    fr: [
+      "Faites-moi savoir si vous souhaitez des modifications.",
+      "Dans l'attente de votre réponse.",
+      "Merci et cordialement,"
+    ]
+  };
+
+  // Lightweight suggestion generator: uses phrase bank for first matching language
+  const generateSuggestionFor = (text) => {
+    try {
+      const langs = getUserLanguages();
+      const primary = (langs && langs[0]) ? langs[0].split('-')[0] : 'en';
+      const bank = phraseBank[primary] || phraseBank['en'];
+      if (!text || text.trim().length < 3) return '';
+      // heuristic: if body already contains any bank phrase, don't suggest
+      for (const p of bank) if (text.includes(p)) return '';
+      // return the first bank phrase prefixed sensibly
+      return (text.trim().endsWith('.') ? ' ' : '. ') + bank[0];
+    } catch (e) {
+      return '';
+    }
+  };
+
+  // Update autocomplete suggestion when body changes
+  useEffect(() => {
+    const s = generateSuggestionFor(body);
+    setAutocompleteSuggestion(s);
+  }, [body]);
+
+  // Accept autocomplete suggestion (insert into body)
+  const acceptAutocomplete = () => {
+    if (!autocompleteSuggestion) return;
+    setBody((b) => b + autocompleteSuggestion);
+    setAutocompleteSuggestion('');
+  };
+
   // Send email
   const handleSendEmail = async () => {
     try {
@@ -273,6 +344,46 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
     } catch (err) {
       console.error(err);
       alert("An error occurred while sending the email.");
+    }
+  };
+
+  // Call the configured compose API to generate text from prompt
+  const handleGenerateFromPrompt = async () => {
+    setComposeError(null);
+    if (!composeApiUrl) {
+      setComposeError('AI service unavailable. Ensure backend URL is configured in REACT_APP_BACKEND_URL and server has OPENAI_API_KEY set.');
+      return;
+    }
+    if (!composePrompt || composePrompt.trim().length === 0) {
+      setComposeError('Please enter a prompt.');
+      return;
+    }
+    setComposeGenerating(true);
+    try {
+      const payload = { prompt: composePrompt, context: body };
+      const headers = { 'Content-Type': 'application/json' };
+      const res = await fetch(composeApiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || `Status ${res.status}`);
+      }
+      const data = await res.json();
+      // expect generated text in data.text or data.generated
+      const generated = data.text || data.generated || '';
+      if (!generated) throw new Error('No generated text returned');
+      // Insert generated text into body and close prompt
+      setBody((b) => (b ? b + '\n\n' + generated : generated));
+      setComposePrompt('');
+      setComposePromptOpen(false);
+    } catch (err) {
+      console.error('Compose API error:', err);
+      setComposeError(err.message || 'AI service error');
+    } finally {
+      setComposeGenerating(false);
     }
   };
 
@@ -606,7 +717,52 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                 placeholder="Write your email here..."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
+                onKeyDown={(e) => {
+                  // Accept suggestion with Tab
+                  if (e.key === 'Tab' && autocompleteSuggestion) {
+                    e.preventDefault();
+                    acceptAutocomplete();
+                  }
+                  // Ctrl+Space to open AI prompt quickly
+                  if (e.key === ' ' && e.ctrlKey) {
+                    e.preventDefault();
+                    setComposePromptOpen(true);
+                  }
+                }}
               />
+              {/* Autocomplete suggestion inline */}
+              {autocompleteSuggestion && (
+                <div className="autocomplete-suggestion" onClick={acceptAutocomplete} role="button" tabIndex={0}>
+                  Suggestion: <span style={{ fontStyle: 'italic' }}>{autocompleteSuggestion.trim()}</span> — click or press Tab to accept
+                </div>
+              )}
+
+              {/* LLM / Compose helpers */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+                <button onClick={() => setComposePromptOpen((s) => !s)} title="Open AI compose prompt">✨ AI</button>
+                <div style={{ color: 'var(--muted)', fontSize: 13 }}>
+                  {composeApiUrl ? 'AI features enabled' : 'AI disabled (no REACT_APP_COMPOSE_API_URL)'}
+                </div>
+                {composeError && <div style={{ color: 'var(--danger)', marginLeft: 8 }}>{composeError}</div>}
+              </div>
+
+              {/* Prompt UI */}
+              {composePromptOpen && (
+                <div className="compose-prompt-overlay">
+                  <textarea
+                    placeholder="Give the AI a prompt: tone, length, context..."
+                    value={composePrompt}
+                    onChange={(e) => setComposePrompt(e.target.value)}
+                    rows={4}
+                    style={{ width: '100%' }}
+                  />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                    <button onClick={handleGenerateFromPrompt} disabled={composeGenerating}>{composeGenerating ? 'Generating…' : 'Generate'}</button>
+                    <button onClick={() => { setComposePromptOpen(false); setComposePrompt(''); }}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
               <button onClick={handleSendEmail}>Send</button>
             </div>
           </div>
