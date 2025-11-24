@@ -6,6 +6,9 @@ backend/.env
 frontend/.env
 .env
 
+# Warp
+WARP.md
+
 # Build and log files
 dist
 build

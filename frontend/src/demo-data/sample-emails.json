@@ -18,7 +18,7 @@
       "subject": "Quarterly report attached",
       "body": "<p>Hi — the quarterly report is attached. Let me know if you have questions.</p>",
       "date": "2025-09-20T14:10:00Z",
-  "classification": ["business"],
+  "classification": ["notification"],
       "label": "benign",
       "model_score": 0.02
     },
@@ -62,7 +62,7 @@
       "subject": "Meeting notes",
       "body": "<p>Attached are the notes from today's meeting.</p>",
       "date": "2025-09-25T16:00:00Z",
-  "classification": ["business"],
+  "classification": ["notification"],
       "label": "benign",
       "model_score": 0.05
     },
@@ -71,7 +71,7 @@
       "sender": "admin@service.example",
       "to": "participant@example.com",
       "subject": "Unusual sign-in detected",
-      "body": "<p>We detected a sign-in from a new device. If this wasn't you, reset your password <a href=\"http://service.example/reset\">here</a>.</p>",
+      "body": "<p>We detected a sign-in from a new device. If this wasn't you, reset your password <a href=\"https://www.service.example/reset\">here</a>.</p>",
       "date": "2025-09-28T21:20:00Z",
   "classification": ["important"],
       "label": "phish",
@@ -84,7 +84,7 @@
       "subject": "This week's highlights",
       "body": "<p>Here are this week's top stories in tech.</p>",
       "date": "2025-09-18T11:00:00Z",
-  "classification": ["newsletter"],
+  "classification": ["promotional"],
       "label": "benign",
       "model_score": 0.11
     },
@@ -95,7 +95,7 @@
       "subject": "Invoice available for your account",
       "body": "<p>Your invoice for September is now available.</p>",
       "date": "2025-09-01T08:00:00Z",
-  "classification": ["automated"],
+  "classification": ["notification"],
       "label": "benign",
       "model_score": 0.12
     },
@@ -106,7 +106,7 @@
       "subject": "Re: Your support ticket #1234",
       "body": "<p>Thanks for contacting support. We'll get back to you shortly.</p>",
       "date": "2025-09-05T10:30:00Z",
-  "classification": ["business"],
+  "classification": ["notification"],
       "label": "benign",
       "model_score": 0.03
     },
@@ -115,9 +115,9 @@
       "sender": "security-alert@provider.example",
       "to": "participant@example.com",
       "subject": "Action required: Suspicious activity",
-      "body": "<p>We detected suspicious activity. Verify here: <a href=\"http://provider.example/verify\">verify</a></p>",
+      "body": "<p>We detected suspicious activity. Verify here: <a href=\"https://www.provider.example/verify\">verify</a></p>",
       "date": "2025-09-29T02:30:00Z",
-  "classification": ["spam"],
+  "classification": ["important"],
       "label": "phish",
       "model_score": 0.88
     },
