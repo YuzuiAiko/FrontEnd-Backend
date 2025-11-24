@@ -1,6 +1,7 @@
 # Define parameters
 param (
-    [string]$Service = "all" # Default to "all" if no parameter is provided
+    [string]$Service = "all", # Default to "all" if no parameter is provided
+    [string]$GmailIndex = "" # Optional: index into comma-separated Gmail client lists
 )
 
 # Function to stop all running processes for the project
@@ -55,6 +56,7 @@ Start-Sleep -Seconds 2
 
 if ($Service -eq "backend" -or $Service -eq "all") {
     Write-Host "Starting Backend Server on port 5002..."
+    if ($GmailIndex -ne "") { $env:GMAIL_CLIENT_INDEX = $GmailIndex; Write-Host "Using GMAIL_CLIENT_INDEX=$GmailIndex" }
     Start-ProcessWithWindow -Path "node" -Arguments "server.js" -WorkingDirectory "./backend"
 }
 
@@ -67,11 +69,11 @@ if ($Service -eq "frontend" -or $Service -eq "all") {
 
 if ($Service -eq "run") {
     Write-Host "Starting all services sequentially (SVM 5001, Backend 5002, Frontend 5003)..."
-    & $PSCommandPath -Service svm
+    & $PSCommandPath -Service svm -GmailIndex $GmailIndex
     Start-Sleep -Seconds 2
-    & $PSCommandPath -Service backend
+    & $PSCommandPath -Service backend -GmailIndex $GmailIndex
     Start-Sleep -Seconds 2
-    & $PSCommandPath -Service frontend
+    & $PSCommandPath -Service frontend -GmailIndex $GmailIndex
 }
 
 Write-Host "All processes have been started successfully!"

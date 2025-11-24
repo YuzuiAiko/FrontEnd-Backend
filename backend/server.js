@@ -1,10 +1,14 @@
+import 'dotenv/config';
 import express from "express"; // Import the express module
+import axios from 'axios';
 import https from "https"; // Import the https module for creating HTTPS server
 import fs from "fs"; // Import the fs module for file system operations
 import bodyParser from "body-parser"; // Import the body-parser module to parse request bodies
 import cors from "cors"; // Import the cors module to enable Cross-Origin Resource Sharing (CORS)
 import session from "express-session"; // Import the express-session module for session management
 import gmailRoutes from "./routes/gmail.js"; // Import Gmail-related routes from a separate file
+import composeRoutes from "./routes/compose.js";
+import { checkLLMKeys } from './lib/llmCheck.js';
 
 const app = express(); // Create an Express application instance
 
@@ -113,6 +117,7 @@ app.post("/api/logout", (req, res) => {
 
 // Use Gmail routes for handling authentication and email operations
 app.use("/auth/gmail", gmailRoutes);
+app.use('/api/compose', composeRoutes);
 
 // Define a catch-all route to handle unknown or unsupported routes
 app.use((req, res) => {
@@ -125,6 +130,9 @@ const PORT = process.env.PORT || 5002; // Ensure backend uses port 5002
 // Detect Vercel or similar serverless hosting environment. Vercel exposes
 // `VERCEL` or `VERCEL_ENV` / `NOW_REGION` environment variables at runtime.
 const isVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV || process.env.NOW_REGION);
+
+// Run checks but don't block startup
+checkLLMKeys().catch((e) => console.warn('LLM key check error:', e));
 
 if (isVercel) {
   // On Vercel the platform terminates TLS for us; do not attempt to load local SSL files.

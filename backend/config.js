@@ -26,7 +26,48 @@ for (const envPath of envPaths) {
 }
 console.log("Loaded GMAIL_REDIRECT_URI:", process.env.GMAIL_REDIRECT_URI, "from", loadedEnv || "no .env found");
 
-export const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID;
-export const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
+// Support multiple Gmail OAuth clients via comma-separated env vars.
+// Two environment variables can be used:
+// - GMAIL_CLIENT_IDS: comma-separated list of client IDs
+// - GMAIL_CLIENT_SECRETS: comma-separated list of client secrets (in same order)
+// Select which pair to use with GMAIL_CLIENT_INDEX (0-based index). If not set, defaults to 0.
+
+function splitList(raw) {
+	if (!raw) return [];
+	return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+const ids = splitList(process.env.GMAIL_CLIENT_IDS);
+const secrets = splitList(process.env.GMAIL_CLIENT_SECRETS);
+
+const gmailClients = [];
+if (ids.length && secrets.length && ids.length === secrets.length) {
+	for (let i = 0; i < ids.length; i++) {
+		gmailClients.push({ clientId: ids[i], clientSecret: secrets[i] });
+	}
+} else if (process.env.GMAIL_CLIENT_ID) {
+	// Fallback to single variables for backward compatibility
+	gmailClients.push({ clientId: process.env.GMAIL_CLIENT_ID, clientSecret: process.env.GMAIL_CLIENT_SECRET });
+}
+
+function getSelectedGmailClient() {
+	const rawIndex = process.env.GMAIL_CLIENT_INDEX;
+	let idx = 0;
+	if (rawIndex !== undefined && rawIndex !== null && rawIndex !== '') {
+		const parsed = Number(rawIndex);
+		if (!Number.isNaN(parsed) && parsed >= 0) idx = parsed;
+	}
+	return gmailClients[idx] || gmailClients[0] || { clientId: process.env.GMAIL_CLIENT_ID, clientSecret: process.env.GMAIL_CLIENT_SECRET };
+}
+
+const selected = getSelectedGmailClient();
+
+export const GMAIL_CLIENT_ID = selected.clientId;
+export const GMAIL_CLIENT_SECRET = selected.clientSecret;
 export const GMAIL_REDIRECT_URI = process.env.GMAIL_REDIRECT_URI;
 export const FRONTEND_REDIRECT_URL = process.env.FRONTEND_REDIRECT_URL;
+
+// Export for advanced usage
+export const GMAIL_CLIENTS = gmailClients;
+export function getGmailClients() { return gmailClients; }
+export function getSelectedGmailClientIndex() { return process.env.GMAIL_CLIENT_INDEX || '0'; }

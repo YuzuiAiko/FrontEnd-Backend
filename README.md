@@ -62,6 +62,10 @@ Create a `.env` file in the project root and configure the following variables:
 #### OAuth2 Configuration
 **Gmail OAuth2:**
 - `GMAIL_CLIENT_ID` - Your Google OAuth client ID
+ - `GMAIL_CLIENT_ID` - Your Google OAuth client ID (legacy single-client variable)
+ - `GMAIL_CLIENT_IDS` - Optional: comma-separated list of Google OAuth client IDs (use with `GMAIL_CLIENT_SECRETS`)
+ - `GMAIL_CLIENT_SECRETS` - Optional: comma-separated list of client secrets corresponding to `GMAIL_CLIENT_IDS`
+ - `GMAIL_CLIENT_INDEX` - Optional: 0-based index to select which client from the comma-separated lists to use at runtime (defaults to `0`)
 - `GMAIL_CLIENT_SECRET` - Your Google OAuth client secret
 - `GMAIL_REDIRECT_URI` - Redirect URI registered in Google Cloud Console
 
@@ -92,6 +96,10 @@ Create a `.env` file in the project root and configure the following variables:
 #### API Keys (Never commit real keys to version control!)
 - `OPENAI_API_KEY` - Required for AI-powered features
 - `PERPLEXITY_API_KEY` - Optional: For advanced features
+- `GOOGLE_GEMINI_API_KEY` - Optional: Google Gemini / Generative Language API key (fallback provider)
+
+Note: AI/compose features are implemented server-side. Set `OPENAI_API_KEY` (preferred) or `PERPLEXITY_API_KEY` in the server environment (not as `REACT_APP_` variables) so the backend can call the provider and keep secrets private.
+You can also set `GOOGLE_GEMINI_API_KEY` as an additional fallback provider; the server will prefer OpenAI, then Perplexity, then Gemini when composing text.
 
 ### Setting Up
 
@@ -116,6 +124,10 @@ Create a `.env` file in the project root and configure the following variables:
    ```env
    PORT=5002
    GMAIL_CLIENT_ID=your-google-client-id
+   # Or provide multiple clients (comma-separated) and pick with GMAIL_CLIENT_INDEX
+   # GMAIL_CLIENT_IDS=id1,id2
+   # GMAIL_CLIENT_SECRETS=secret1,secret2
+   # GMAIL_CLIENT_INDEX=0
    GMAIL_CLIENT_SECRET=your-google-client-secret
    GMAIL_REDIRECT_URI=https://localhost:5002/auth/gmail/callback
    OUTLOOK_CLIENT_ID=your-outlook-client-id

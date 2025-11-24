@@ -12,14 +12,19 @@ if [ "$1" == "install" ]; then
     cd frontend && npm install --legacy-peer-deps --verbose && cd ..
 fi
 
-# Create a new tmux session named "services"
-tmux new-session -d -s services "python backend/classifier/svm_model.py --verbose"
+# Allow optional GMAIL_CLIENT_INDEX argument as second param
+GMAIL_INDEX="${2:-}"
 
-# Split the window horizontally and start the backend server
-tmux split-window -h "node backend/server.js --verbose"
-
-# Split the window vertically and start the frontend
-tmux split-window -v "cd frontend && npm start --verbose"
+# Start tmux session with environment variable prefixes to ensure selection is passed into panes
+if [ -n "$GMAIL_INDEX" ]; then
+    tmux new-session -d -s services "GMAIL_CLIENT_INDEX=$GMAIL_INDEX python backend/classifier/svm_model.py --verbose"
+    tmux split-window -h "GMAIL_CLIENT_INDEX=$GMAIL_INDEX node backend/server.js --verbose"
+    tmux split-window -v "GMAIL_CLIENT_INDEX=$GMAIL_INDEX bash -lc 'cd frontend && npm start --verbose'"
+else
+    tmux new-session -d -s services "python backend/classifier/svm_model.py --verbose"
+    tmux split-window -h "node backend/server.js --verbose"
+    tmux split-window -v "cd frontend && npm start --verbose"
+fi
 
 # Select the first pane
 tmux select-pane -t 0
