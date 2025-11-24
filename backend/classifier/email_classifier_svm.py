@@ -127,3 +127,5 @@ def classify(emails):
 
     # run predict email label for each email in emails
     predictions = [predict_email_label(email) for email in emails]
+
+    return predictions
