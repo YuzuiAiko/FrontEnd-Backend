@@ -62,3 +62,6 @@ ssl/
 .DS_Store
 Thumbs.db
 >>>>>>> enh-phishing
+
+# Classifier output files
+backend/classifier/output/
