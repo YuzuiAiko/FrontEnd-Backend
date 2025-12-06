@@ -1,6 +1,7 @@
 import unittest
 import sys
 import os
+import pandas as pd
 
 # Add the classifier directory to the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -33,31 +34,32 @@ class TestPhishingLinkClassifier(unittest.TestCase):
         url = "https://www.example.com/path?query=value"
         features = extract_features_from_url(url)
         
-        # Check that features dictionary is returned
-        self.assertIsInstance(features, dict)
+        # Check that features DataFrame is returned
+        self.assertIsInstance(features, pd.DataFrame)
+        self.assertEqual(len(features), 1, 'DataFrame should have one row')
         
-        # Check specific features
-        self.assertIn('url_length', features)
-        self.assertIn('hostname_length', features)
-        self.assertIn('https_token', features)
-        self.assertIn('ip', features)
+        # Check specific features (columns exist)
+        self.assertIn('url_length', features.columns)
+        self.assertIn('hostname_length', features.columns)
+        self.assertIn('https_token', features.columns)
+        self.assertIn('ip', features.columns)
         
-        # Verify feature values
-        self.assertGreater(features['url_length'], 0)
-        self.assertEqual(features['https_token'], 1)  # https URL
-        self.assertEqual(features['ip'], 0)  # Not an IP address
+        # Verify feature values (access first row)
+        self.assertGreater(features.iloc[0]['url_length'], 0)
+        self.assertEqual(features.iloc[0]['https_token'], 1)  # https URL
+        self.assertEqual(features.iloc[0]['ip'], 0)  # Not an IP address
     
     def test_extract_features_counts_special_chars(self):
         """Test that special character counts are extracted"""
         url = "https://example.com/path?param=value&other=test"
         features = extract_features_from_url(url)
         
-        self.assertIn('total_of?', features)
-        self.assertIn('total_of&', features)
-        self.assertIn('total_of=', features)
-        self.assertGreater(features['total_of?'], 0)
-        self.assertGreater(features['total_of&'], 0)
-        self.assertGreater(features['total_of='], 0)
+        self.assertIn('total_of?', features.columns)
+        self.assertIn('total_of&', features.columns)
+        self.assertIn('total_of=', features.columns)
+        self.assertGreater(features.iloc[0]['total_of?'], 0)
+        self.assertGreater(features.iloc[0]['total_of&'], 0)
+        self.assertGreater(features.iloc[0]['total_of='], 0)
     
     def test_extract_features_www_detection(self):
         """Test www detection in URL"""
@@ -67,8 +69,8 @@ class TestPhishingLinkClassifier(unittest.TestCase):
         features_www = extract_features_from_url(url_with_www)
         features_no_www = extract_features_from_url(url_without_www)
         
-        self.assertGreater(features_www['total_of_www'], 0)
-        self.assertEqual(features_no_www['total_of_www'], 0)
+        self.assertGreater(features_www.iloc[0]['total_of_www'], 0)
+        self.assertEqual(features_no_www.iloc[0]['total_of_www'], 0)
     
     def test_extract_features_com_detection(self):
         """Test .com detection in URL"""
@@ -78,8 +80,8 @@ class TestPhishingLinkClassifier(unittest.TestCase):
         features_com = extract_features_from_url(url_with_com)
         features_no_com = extract_features_from_url(url_without_com)
         
-        self.assertGreater(features_com['total_of_com'], 0)
-        self.assertEqual(features_no_com['total_of_com'], 0)
+        self.assertGreater(features_com.iloc[0]['total_of_com'], 0)
+        self.assertEqual(features_no_com.iloc[0]['total_of_com'], 0)
     
     def test_load_model_and_scaler(self):
         """Test model and scaler loading"""
