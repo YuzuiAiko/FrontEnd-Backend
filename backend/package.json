@@ -4,7 +4,14 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "node -r dotenv/config --test ./tests/compose.test.js ./tests/llmkeys.test.js"
+    "test": "node -r dotenv/config --test ./tests/**/*.test.js",
+    "test:compose": "node -r dotenv/config --test ./tests/compose.test.js ./tests/compose-extended.test.js",
+    "test:gmail": "node -r dotenv/config --test ./tests/gmail.test.js",
+    "test:outlook": "node -r dotenv/config --test ./tests/outlook.test.js",
+    "test:server": "node -r dotenv/config --test ./tests/server.test.js",
+    "test:gemini": "node -r dotenv/config --test ./tests/geminiClient.test.js",
+    "test:llm": "node -r dotenv/config --test ./tests/llmkeys.test.js",
+    "test:full": "node -r dotenv/config --test ./tests/full_suite.test.js"
   },
   "keywords": [],
   "author": "",
