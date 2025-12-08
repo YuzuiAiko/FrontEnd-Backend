@@ -1,17 +1,118 @@
 import os
-import matplotlib.pyplot as plt
 import pandas as pd
+import joblib
+import ipaddress
+from urllib.parse import urlparse
+
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
-import joblib
 
+# Optional: enable debug prints (set to True to see extraction / matching info)
+DEBUG = False
+
+# Try to use tldextract for correct eTLD+1 extraction; fallback if not available
+try:
+    import tldextract
+    _TLDEXTRACT_AVAILABLE = True
+except Exception:
+    _TLDEXTRACT_AVAILABLE = False
+
+# -------------------------------------------------------------
+# CONFIG – Top-1M domain list location (user-provided path)
+# -------------------------------------------------------------
+TOP1M_CSV_PATH = r"C:\Users\CHRISTIAN\OneDrive\Desktop\Desktop\FrontEnd-Backend\backend\classifier\top-1m.csv"
+
+# We load domains lazily and store them in memory
+TOP_DOMAINS = None
+
+
+# =============================================================
+#  UTIL: registered/registrable domain extraction (eTLD+1)
+# =============================================================
+def _normalize_hostname(hostname: str) -> str:
+    if not hostname:
+        return ""
+    h = hostname.lower().strip().rstrip('.')
+    return h
+
+
+def get_registered_domain_from_hostname(hostname: str) -> str:
+    """
+    Return registrable domain (eTLD+1) for a hostname.
+    Uses tldextract when available for correctness (handles co.uk etc).
+    Fallback: naive last-two-labels approach.
+    """
+    hostname = _normalize_hostname(hostname)
+    if not hostname:
+        return ""
+
+    if _TLDEXTRACT_AVAILABLE:
+        ext = tldextract.extract(hostname)
+        if ext.domain and ext.suffix:
+            return f"{ext.domain}.{ext.suffix}"
+        # fallback to hostname if extraction fails
+        return hostname
+
+    # naive fallback
+    parts = hostname.split('.')
+    if len(parts) >= 2:
+        return parts[-2] + '.' + parts[-1]
+    return hostname
+
+
+def extract_registered_domain_from_url(url: str) -> str:
+    """Get the registrable domain (eTLD+1) from a URL string."""
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname if parsed.hostname else ""
+        return get_registered_domain_from_hostname(hostname)
+    except Exception:
+        return ""
+
+
+# =============================================================
+#  LOAD TOP-1M DOMAINS (normalized to registrable domain)
+# =============================================================
+def load_top_domains():
+    """Load the Top-1M domain list into a Python set (lazy loaded).
+    Normalizes each entry to its registrable domain for reliable matching.
+    """
+    global TOP_DOMAINS
+    if TOP_DOMAINS is not None:
+        return TOP_DOMAINS
+
+    TOP_DOMAINS = set()
+    try:
+        # Read CSV without assuming a header. Many top-1m files are two-column: rank,domain
+        df = pd.read_csv(TOP1M_CSV_PATH, header=None, dtype=str)
+        # pick the column that looks like domains: prefer column 1 if exists else column 0
+        col_idx = 1 if df.shape[1] > 1 else 0
+        raw_domains = df[col_idx].astype(str).str.strip().str.lower().str.rstrip('.')
+        # normalize each domain to its registrable (eTLD+1)
+        normalized = set(get_registered_domain_from_hostname(d) for d in raw_domains if d)
+        TOP_DOMAINS = normalized
+        if DEBUG:
+            print(f"[DEBUG] Loaded {len(TOP_DOMAINS)} normalized top domains from {TOP1M_CSV_PATH}")
+    except FileNotFoundError:
+        print(f"[ERROR] Top-1M file not found at {TOP1M_CSV_PATH}. Top-domain checks will be disabled.")
+        TOP_DOMAINS = set()
+    except Exception as e:
+        print(f"[ERROR] Failed to load top domains: {e}")
+        TOP_DOMAINS = set()
+
+    return TOP_DOMAINS
+
+
+# =============================================================
+#  MODEL TRAINING CONFIG
+# =============================================================
 cols_used = [
     'url_length',
     'hostname_length',
-    'ip', # binary so dont scale
-    'https_token', # binary so dont scale
+    'ip',  # binary
+    'https_token',  # binary
     'total_of.',
     'total_of-',
     'total_of@',
@@ -30,8 +131,9 @@ cols_used = [
     'total_of_www',
     'total_of_com',
     'total_of_http_in_path',
-    'status' # target, binary
+    'status'
 ]
+
 
 def _get_paths():
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -43,42 +145,41 @@ def _get_paths():
     return dataset_path, model_dir, model_path, scaler_path, cols_path
 
 
+# =============================================================
+#  TRAINING
+# =============================================================
 def train_model_and_scaler(save=True):
-    """Train the phishing link SVM model and return (model, scaler, X_train_columns).
-
-    If `save` is True the artifacts will be saved under `classifier/model/`.
-    """
     dataset_path, model_dir, model_path, scaler_path, cols_path = _get_paths()
     df = pd.read_csv(dataset_path, low_memory=False)
+
     df = df[cols_used]
     df['status'] = df['status'].apply(lambda x: 1 if x == 'phishing' else 0)
 
-    # split data
     X = df.drop('status', axis=1)
     y = df['status']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # identify numerical columns to scale (excluding binary)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
     numerical_cols = [col for col in X_train.columns if col not in ['ip', 'https_token']]
 
-    # scale numerical data
     scaler = StandardScaler()
+    # Fit scaler on numerical cols (operate in-place)
     X_train[numerical_cols] = scaler.fit_transform(X_train[numerical_cols])
     X_test[numerical_cols] = scaler.transform(X_test[numerical_cols])
 
-    # train model
     model = SVC(kernel='linear', class_weight='balanced')
     model.fit(X_train, y_train)
 
-    # test model
     y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    print(f"Accuracy: {accuracy}")
+    print("Accuracy:", accuracy_score(y_test, y_pred))
     print(classification_report(y_test, y_pred))
 
     if save:
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
+
         joblib.dump(model, model_path)
         joblib.dump(scaler, scaler_path)
         joblib.dump(list(X_train.columns), cols_path)
@@ -86,12 +187,10 @@ def train_model_and_scaler(save=True):
 
     return model, scaler, list(X_train.columns)
 
-# EXTRACTING FEATURES FROM PROVIDED LINK
 
-from urllib.parse import urlparse
-import ipaddress
-import re
-
+# =============================================================
+#  FEATURE EXTRACTION FOR PREDICTION
+# =============================================================
 def is_ip_address(url):
     try:
         hostname = urlparse(url).hostname
@@ -99,159 +198,148 @@ def is_ip_address(url):
             ipaddress.ip_address(hostname)
             return 1
         return 0
-    except ValueError:
+    except Exception:
         return 0
 
-# Function to extract features from target link to evaluate
+
 def extract_features_from_url(url):
+    """
+    Build feature dict for a URL. Keys must match the training columns.
+    """
     features = {}
+    parsed = urlparse(url)
 
-    # url_length
     features['url_length'] = len(url)
+    features['hostname_length'] = len(parsed.hostname) if parsed.hostname else 0
+    features['ip'] = is_ip_address(url)
+    features['https_token'] = 1 if parsed.scheme == 'https' else 0
 
-    parsed_url = urlparse(url)
+    # count characters and map to the training column names like 'total_of.'
+    for char in ['.', '-', '@', '?', '&', '=', '_', '~', '%', '/', '*', ':', ',', ';', '$']:
+        features[f'total_of{char}'] = url.count(char)
 
-    # hostname_length
-    features['hostname_length'] = len(parsed_url.hostname) if parsed_url.hostname else 0
-
-    # ip (binary)
-    features['ip'] = 1 if is_ip_address(url) else 0 # Reuse the function defined earlier
-
-    # https_token (binary)
-    features['https_token'] = 1 if parsed_url.scheme == 'https' else 0
-
-    # total_of.
-    features['total_of.'] = url.count('.')
-
-    # total_of-
-    features['total_of-'] = url.count('-')
-
-    # total_of@
-    features['total_of@'] = url.count('@')
-
-    # total_of?
-    features['total_of?'] = url.count('?')
-
-    # total_of&
-    features['total_of&'] = url.count('&')
-
-    # total_of=
-    features['total_of='] = url.count('=')
-
-    # total_of_
-    features['total_of_'] = url.count('_')
-
-    # total_of~
-    features['total_of~'] = url.count('~')
-
-    # total_of%
-    features['total_of%'] = url.count('%')
-
-    # total_of/
-    features['total_of/'] = url.count('/')
-
-    # total_of*
-    features['total_of*'] = url.count('*')
-
-    # total_of:
-    features['total_of:'] = url.count(':')
-
-    # total_of,
-    features['total_of,'] = url.count(',')
-
-    # total_of;
-    features['total_of;'] = url.count(';')
-
-    # total_of$
-    features['total_of$'] = url.count('$')
-
-    # total_of_www
     features['total_of_www'] = url.count('www')
-
-    # total_of_com
     features['total_of_com'] = url.count('com')
-
-    # total_of_http_in_path
     features['total_of_http_in_path'] = url.count('http')
 
-
-    # Convert to DataFrame
-    features_df = pd.DataFrame([features])
-
-    # `features_df` will be aligned to the training columns later by the caller
-    return features_df
-
-def _predict_with_objects(url, model, scaler, X_train_cols):
-    # Extract features
-    features_df = extract_features_from_url(url)
-
-    # Ensure columns are in the same order as the training data
-    features_df = features_df[X_train_cols]
-
-    # Identify numerical columns to scale (excluding binary)
-    numerical_cols = [col for col in features_df.columns if col not in ['ip', 'https_token']]
-
-    # Scale numerical data using the fitted scaler
-    features_df[numerical_cols] = scaler.transform(features_df[numerical_cols])
-
-    # Make prediction
-    prediction = model.predict(features_df)
-
-    return "phishing" if prediction[0] == 1 else "legitimate"
+    return pd.DataFrame([features])
 
 
-# Module-level lazy-loaded objects
+# =============================================================
+#  PREDICTION
+# =============================================================
 _MODEL = None
 _SCALER = None
 _X_TRAIN_COLS = None
 
 
 def load_model_and_scaler():
-    """Try loading saved artifacts from disk. Returns (model, scaler, cols) or (None, None, None)."""
-    _, model_dir, model_path, scaler_path, cols_path = _get_paths()
+    _, _, model_path, scaler_path, cols_path = _get_paths()
     try:
         if os.path.exists(model_path) and os.path.exists(scaler_path) and os.path.exists(cols_path):
-            model = joblib.load(model_path)
-            scaler = joblib.load(scaler_path)
-            cols = joblib.load(cols_path)
-            return model, scaler, cols
+            return (
+                joblib.load(model_path),
+                joblib.load(scaler_path),
+                joblib.load(cols_path)
+            )
     except Exception:
         pass
     return None, None, None
 
 
 def init_model(force_train=False):
-    """Initialize module-level model/scaler/cols. If `force_train` is True it retrains and saves artifacts."""
     global _MODEL, _SCALER, _X_TRAIN_COLS
+
+    # if model already loaded and not forcing re-train, skip
     if _MODEL is not None and not force_train:
         return
+
     if not force_train:
-        model, scaler, cols = load_model_and_scaler()
-        if model is not None:
-            _MODEL, _SCALER, _X_TRAIN_COLS = model, scaler, cols
+        mdl, scl, cols = load_model_and_scaler()
+        if mdl is not None:
+            _MODEL, _SCALER, _X_TRAIN_COLS = mdl, scl, cols
+            if DEBUG:
+                print("[DEBUG] Loaded model/scaler/cols from disk.")
             return
-    # If we get here, train a new model (and save it)
+
+    # Train a new one (and save)
     _MODEL, _SCALER, _X_TRAIN_COLS = train_model_and_scaler(save=True)
 
 
-def predict_phishing(url):
-    """Convenience function that predicts using a module-level model loaded from disk (or trained on demand).
+def _predict_with_objects(url, model, scaler, X_train_cols):
+    # Extract features and align to training columns
+    df = extract_features_from_url(url)
 
-    Returns 'phishing' or 'legitimate'. Raises RuntimeError if model cannot be initialized.
+    # Ensure all required columns exist in df; add missing numeric columns with 0
+    for col in X_train_cols:
+        if col not in df.columns:
+            df[col] = 0
+
+    df = df[X_train_cols]
+
+    numerical_cols = [c for c in df.columns if c not in ['ip', 'https_token']]
+    df[numerical_cols] = scaler.transform(df[numerical_cols])
+
+    pred = model.predict(df)[0]
+    return "phishing" if pred == 1 else "legitimate"
+
+
+# =============================================================
+#  FINAL PHISHING CHECK (WITH TOP-1M DOMAIN OVERRIDE)
+# =============================================================
+def predict_phishing(url):
+    """
+    Final output must keep the SAME old labels:
+       'legitimate'
+       'phishing'
+
+    Behavior:
+    1) If the registrable domain (eTLD+1) is in the Top-1M list:
+           → return 'legitimate'
+    2) Otherwise fall back to SVM:
+           → return 'phishing' or 'legitimate'
     """
     init_model()
     if _MODEL is None:
-        raise RuntimeError('Model is not available (failed to load or train).')
+        raise RuntimeError("Model is not available")
+
+    # Load top domains (normalized)
+    domains = load_top_domains()
+    registered_domain = extract_registered_domain_from_url(url)
+
+    # TOP-1M OVERRIDE
+    if registered_domain and registered_domain in domains:
+        return "legitimate"   # ← OLD LABEL preserved
+
+    # Otherwise use ML model
     return _predict_with_objects(url, _MODEL, _SCALER, _X_TRAIN_COLS)
 
 
+
+# =============================================================
+#  Script Mode
+# =============================================================
 if __name__ == '__main__':
-    # When run as a script, train (or load) and provide a tiny interactive test
-    init_model(force_train=False)
-    print('Model ready. Example predictions:')
-    examples = [
-        'http://example.com/login',
-        'https://192.168.0.1/secure'
+    # set DEBUG True here if you want to see domain normalization debug lines
+    DEBUG = True
+
+    init_model()
+    print("Model ready.")
+
+    tests = [
+        "https://accounts.google.com/ServiceLogin?service=mail",
+        "https://myaccount.google.com/notifications",
+        "https://paypal.com/login",
+        "http://paypal.com.login-secure-verify.ru/auth",
+        "https://192.168.0.1/secure",
+        # an intentionally suspicious google-like domain:
+        "https://accounts-google.com/login",
+        # google subdomain style (should be top-domain verified)
+        "https://accounts.google.co.uk/signin"  # tests tldextract behavior for co.uk
     ]
-    for ex in examples:
-        print(ex, '->', predict_phishing(ex))
+
+    for t in tests:
+        try:
+            print(t, "->", predict_phishing(t))
+        except Exception as e:
+            print(f"Error predicting {t}: {e}")
