@@ -22,7 +22,7 @@ except Exception:
 # -------------------------------------------------------------
 # CONFIG – Top-1M domain list location (user-provided path)
 # -------------------------------------------------------------
-TOP1M_CSV_PATH = r"C:\Users\CHRISTIAN\OneDrive\Desktop\Desktop\FrontEnd-Backend\backend\classifier\top-1m.csv"
+TOP1M_CSV_PATH = r"C:\Users\Timothy\Desktop\Temp-ImFriSiV-Mail\FrontEnd-Backend\backend\classifier\top-1m.csv"
 
 # We load domains lazily and store them in memory
 TOP_DOMAINS = None
@@ -169,7 +169,7 @@ def train_model_and_scaler(save=True):
     X_train[numerical_cols] = scaler.fit_transform(X_train[numerical_cols])
     X_test[numerical_cols] = scaler.transform(X_test[numerical_cols])
 
-    model = SVC(kernel='linear', class_weight='balanced')
+    model = SVC(kernel='rbf', class_weight='balanced')
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)

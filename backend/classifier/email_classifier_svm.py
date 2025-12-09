@@ -1,100 +1,106 @@
 # Imports
+import json
 import re
 import spacy
-from bs4 import BeautifulSoup
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import SVC
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+from bs4 import BeautifulSoup
 
 # Load spaCy model
 nlp = spacy.load("en_core_web_sm")
 
-REGEX_PATTERNS = [
-    (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "<EMAIL>"),
-    (re.compile(r"https?://\S+"), "<URL>"),
-    (re.compile(r"\bord(er)?\s?#?\d+\b", re.I), "<ORDER_ID>"),
-    (re.compile(r"\b\d{4}-\d{2}-\d{2}\b"), "<DATE>"),
-    (re.compile(r"\b\d{10}\b"), "<PHONE>"),
-]
+# Patterns
+URL_PATTERN = r"https?://\S+"
+EMAIL_PATTERN = r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
+DATE_PATTERN = r"\b\d{4}-\d{2}-\d{2}\b"
+PHONE_PATTERN = r"\b\d{10}\b"
+NUM_PATTERN = r"\b\d+\b"
 
-# Function to strip HTML tags
+# Function to strip html with bs4
 def strip_html(text):
-    return BeautifulSoup(text, "html.parser").get_text(" ", strip=True)
+  soup = BeautifulSoup(text, "html.parser")
+  return soup.get_text(" ", strip=True)
 
-def replace_regex(text):
-    for pattern, repl in REGEX_PATTERNS:
-        text = pattern.sub(repl, text)
-    return text
+def preprocess(text):
+  # 1. Lowercase
+  text = text.lower()
 
-def replace_ner(text):
-    doc = nlp(text)
-    out = text
-    for ent in doc.ents:
-        placeholder = f"<{ent.label_}>"
-        out = out.replace(ent.text, placeholder)
-    return out
+  # 2. Replace patterns
+  text = re.sub(URL_PATTERN, " URL ", text)
+  text = re.sub(EMAIL_PATTERN, " EMAIL ", text)
+  text = re.sub(DATE_PATTERN, " DATE ", text)
+  text = re.sub(PHONE_PATTERN, " PHONE ", text)
+  text = re.sub(NUM_PATTERN, " NUM ", text)
 
-def drop_special_chars(text):
-    return re.sub(r'[^a-zA-Z0-9\s]', '', text)
+  # 3. Run spaCy pipeline (tokenization, POS, NER)
+  doc = nlp(text)
 
-def convert_newlines(text):
-    return re.sub(r'\n+', ' ', text)
+  tokens = []
+  for token in doc:
+    # NER replacement
+    if token.ent_type_:
+        tokens.append(token.ent_type_)
+        continue
 
-def to_lowercase(text):
-    return text.lower()
+    # Remove punctuation & stopwords
+    if token.is_punct or token.is_space or token.is_stop:
+        continue
 
-def preprocess_text(text):
-    text = convert_newlines(text)
-    text = drop_special_chars(text)
-    text = replace_regex(text)
-    text = replace_ner(text)
-    text = to_lowercase(text)
-    return text
+    # Lemmatize
+    lemma = token.lemma_.strip()
+
+    # Final filtering
+    if len(lemma) < 2:
+        continue
+    if not lemma.isalpha():
+        continue
+
+    tokens.append(lemma)
+
+  return " ".join(tokens)
+
+vectorizer = TfidfVectorizer(
+    preprocessor=preprocess,
+    tokenizer=lambda x: x.split(),   # use cleaned tokens
+    # ngram_range=(1, 2),
+    # max_features=50000
+)
 
 # Load json
 import json
 
-with open("training_data/training_emails.json", "r", encoding='utf-8') as f:
-    emails_data = json.load(f)
+texts = []
+labels = []
 
-# Preprocess emails
-processed_emails_data = []
+# Open json
+with open(r"backend\classifier\training_data\training_emails.json", "r", encoding="utf-8") as f:
+    emails = json.load(f)
 
-for email in emails_data:
+for email in emails:
     subject = email.get('subject', '')
     body = email.get('body', '')
     # Concatenate subject and body with a separator for better context
     combined_text = f"{subject}\n\n{body}"
 
-    processed_text = preprocess_text(combined_text)
+    texts.append(combined_text)
+    labels.append(email.get('label', ''))
 
-    # Store the original label and the processed text
-    processed_emails_data.append({
-        'label': email.get('label'),
-        'text': processed_text
-    })
-
-texts = []
-labels = []
-
-for email_entry in processed_emails_data:
-    texts.append(email_entry['text'])
-    labels.append(email_entry['label'])
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(texts)
-
-from sklearn.model_selection import train_test_split
-
-X_train, X_test, y_train, y_test = train_test_split(X, labels, test_size=0.2, random_state=42, stratify=labels)
+X_train, X_test, y_train, y_test = train_test_split(texts, labels, test_size=0.2, random_state=42, stratify=labels)
 
 from sklearn.svm import SVC
 
-# Instantiate an SVM classifier with a linear kernel
-svm_model = SVC(kernel='linear', class_weight='balanced', random_state=42)
+model = Pipeline([
+    ('tfidf', vectorizer),
+    ('svm', SVC(kernel='rbf'))
+])
 
-# Train the SVM model on the training data
-svm_model.fit(X_train, y_train)
+model.fit(X_train, y_train)
 
 print("SVM model trained successfully.")
 
@@ -103,14 +109,16 @@ def predict_email_label(email_string):
     stripped_string = strip_html(email_string)
 
     # Preprocess the input string using the preprocessor
-    processed_string = preprocess_text(stripped_string)
+    # processed_string = preprocess(stripped_string)
 
     # Vectorize the processed string using the fitted TF-IDF vectorizer
     # The vectorizer expects an iterable (list) of strings
-    vectorized_string = vectorizer.transform([processed_string])
+    # vectorized_string = vectorizer.transform([processed_string])
 
     # Predict the label using the trained SVM model
-    prediction = svm_model.predict(vectorized_string)
+    # prediction = svm_model.predict(vectorized_string)
+
+    prediction = model.predict([stripped_string])
 
     return prediction[0]
 
