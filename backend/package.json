@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node -r dotenv/config --test ./tests/**/*.test.js",
+    "postinstall": "patch-package",
     "test:compose": "node -r dotenv/config --test ./tests/compose.test.js ./tests/compose-extended.test.js",
     "test:gmail": "node -r dotenv/config --test ./tests/gmail.test.js",
     "test:outlook": "node -r dotenv/config --test ./tests/outlook.test.js",
@@ -35,5 +36,10 @@
     "nylas": "^7.7.1",
     "openai": "^6.9.1",
     "python-shell": "^5.0.0"
+  }
+  ,
+  "devDependencies": {
+    "patch-package": "^6.5.1",
+    "postinstall-postinstall": "^2.1.0"
   }
 }

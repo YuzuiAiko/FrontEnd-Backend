@@ -1,0 +1,37 @@
+*** Begin Patch
+*** Update File: node_modules/buffer-equal-constant-time/index.js
+@@
+- bufferEq.install = function() {
+-  Buffer.prototype.equal = SlowBuffer.prototype.equal = function equal(that) {
+-    return bufferEq(this, that);
+-  };
+-};
+-
+-var origBufEqual = Buffer.prototype.equal;
+-var origSlowBufEqual = SlowBuffer.prototype.equal;
+-bufferEq.restore = function() {
+-  Buffer.prototype.equal = origBufEqual;
+-  SlowBuffer.prototype.equal = origSlowBufEqual;
+-};
++bufferEq.install = function() {
++  Buffer.prototype.equal = function equal(that) {
++    return bufferEq(this, that);
++  };
++  if (SlowBuffer && SlowBuffer.prototype) {
++    try {
++      SlowBuffer.prototype.equal = Buffer.prototype.equal;
++    } catch (e) {
++      // older/newer Node runtimes may not expose SlowBuffer prototype; ignore
++    }
++  }
++};
++
++var origBufEqual = Buffer.prototype.equal;
++var origSlowBufEqual = (SlowBuffer && SlowBuffer.prototype) ? SlowBuffer.prototype.equal : undefined;
++bufferEq.restore = function() {
++  Buffer.prototype.equal = origBufEqual;
++  if (SlowBuffer && SlowBuffer.prototype && typeof origSlowBufEqual !== 'undefined') {
++    SlowBuffer.prototype.equal = origSlowBufEqual;
++  }
++};
+*** End Patch
