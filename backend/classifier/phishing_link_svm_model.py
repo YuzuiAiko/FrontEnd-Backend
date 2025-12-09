@@ -22,10 +22,10 @@ except Exception:
 # -------------------------------------------------------------
 # CONFIG – Top-1M domain list location (machine-agnostic, relative)
 # -------------------------------------------------------------
+
 # Use a path relative to this module so the code works across machines
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TOP1M_CSV_PATH = os.path.join(BASE_DIR, 'training_data', 'top-1m.csv')
-
 # We load domains lazily and store them in memory
 TOP_DOMAINS = None
 
@@ -171,7 +171,7 @@ def train_model_and_scaler(save=True):
     X_train[numerical_cols] = scaler.fit_transform(X_train[numerical_cols])
     X_test[numerical_cols] = scaler.transform(X_test[numerical_cols])
 
-    model = SVC(kernel='linear', class_weight='balanced')
+    model = SVC(kernel='rbf', class_weight='balanced')
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
