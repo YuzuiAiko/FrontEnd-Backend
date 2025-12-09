@@ -38,8 +38,8 @@ stop:
 # Target to install dependencies for all services
 install:
 	@echo "Installing Python dependencies..."
-	pip install -r backend/classifier/requirements.txt --verbose
+	pip install -r backend/classifier/requirements.txt
 	@echo "Installing Node.js dependencies for backend..."
-	cd backend && npm install --legacy-peer-deps --verbose
+	cd backend && npm install
 	@echo "Installing Node.js dependencies for frontend..."
-	cd frontend && npm install --legacy-peer-deps --verbose
+	cd frontend && npm install

@@ -1,7 +1,6 @@
 # Define parameters
 param (
-    [string]$Service = "all", # Default to "all" if no parameter is provided
-    [string]$GmailIndex = "" # Optional: index into comma-separated Gmail client lists
+    [string]$Service = "all" # Default to "all" if no parameter is provided
 )
 
 # Function to stop all running processes for the project
@@ -35,45 +34,37 @@ function Start-ProcessWithWindow {
 # Install dependencies for Python and Node.js
 if ($Service -eq "install" -or $Service -eq "all") {
     Write-Host "Installing Python dependencies..."
-    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend/classifier'; pip install -r requirements.txt --verbose"
+    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend/classifier'; pip install -r requirements.txt"
 
     Write-Host "Installing Node.js dependencies for backend..."
-    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend'; npm install --verbose --legacy-peer-deps"
+    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './backend'; npm install --verbose"
 
     Write-Host "Installing Node.js dependencies for frontend..."
-    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './frontend'; npm install --verbose --legacy-peer-deps"
+    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd './frontend'; npm install --verbose"
 }
 
 # Start services based on the parameter
-
-# Sequentially start SVM (5001), backend (5002), and frontend (5003)
 if ($Service -eq "svm" -or $Service -eq "all") {
-    Write-Host "Starting SVM Model on port 5001..."
+    Write-Host "Starting SVM Model..."
     Start-ProcessWithWindow -Path "python" -Arguments "svm_model.py" -WorkingDirectory "./backend/classifier"
 }
 
-Start-Sleep -Seconds 2
-
 if ($Service -eq "backend" -or $Service -eq "all") {
-    Write-Host "Starting Backend Server on port 5002..."
-    if ($GmailIndex -ne "") { $env:GMAIL_CLIENT_INDEX = $GmailIndex; Write-Host "Using GMAIL_CLIENT_INDEX=$GmailIndex" }
+    Write-Host "Starting Backend Server..."
     Start-ProcessWithWindow -Path "node" -Arguments "server.js" -WorkingDirectory "./backend"
 }
 
-Start-Sleep -Seconds 2
-
 if ($Service -eq "frontend" -or $Service -eq "all") {
-    Write-Host "Starting Frontend on port 5003..."
+    Write-Host "Starting Frontend..."
     Start-ProcessWithWindow -Path "npm" -Arguments "start" -WorkingDirectory "./frontend"
 }
 
-if ($Service -eq "run") {
-    Write-Host "Starting all services sequentially (SVM 5001, Backend 5002, Frontend 5003)..."
-    & $PSCommandPath -Service svm -GmailIndex $GmailIndex
-    Start-Sleep -Seconds 2
-    & $PSCommandPath -Service backend -GmailIndex $GmailIndex
-    Start-Sleep -Seconds 2
-    & $PSCommandPath -Service frontend -GmailIndex $GmailIndex
+# Add a new service command to run all three servers without installing dependencies
+if ($Service -eq "run" -or $Service -eq "all") {
+    Write-Host "Starting all services (SVM Model, Backend, Frontend)..."
+    Start-ProcessWithWindow -Path "python" -Arguments "svm_model.py" -WorkingDirectory "./backend/classifier"
+    Start-ProcessWithWindow -Path "node" -Arguments "server.js" -WorkingDirectory "./backend"
+    Start-ProcessWithWindow -Path "npm" -Arguments "start" -WorkingDirectory "./frontend"
 }
 
 Write-Host "All processes have been started successfully!"

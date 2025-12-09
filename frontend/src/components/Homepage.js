@@ -2,8 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import DOMPurify from "dompurify"; // To sanitize HTML and prevent XSS attacks
 import "./homepage.css"; // Importing styles for the component
 
-const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
-  const backendUrl = process.env.REACT_APP_BACKEND_URL;
+const Homepage = ({ userEmail }) => {
   // State hooks for managing various aspects of the component
   const [emails, setEmails] = useState([]); // Stores the fetched emails
   const [loading, setLoading] = useState(true); // Tracks loading state
@@ -18,97 +17,16 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
   const [recipient, setRecipient] = useState(""); // Stores the recipient's email
   const [subject, setSubject] = useState(""); // Stores the subject of the email
   const [body, setBody] = useState(""); // Stores the body of the email
-  // Compose LLM / Autocomplete state
-  const [composePromptOpen, setComposePromptOpen] = useState(false);
-  const [composePrompt, setComposePrompt] = useState("");
-  const [composeGenerating, setComposeGenerating] = useState(false);
-  const [composeError, setComposeError] = useState(null);
-  const [autocompleteSuggestion, setAutocompleteSuggestion] = useState("");
   const [sidebarVisible, setSidebarVisible] = useState(false); // Toggles the sidebar visibility
-  // Categories used by the classifier (from real-data-pipeline)
-  // Categories should mirror the 5 classifier labels coming from the Python service:
-  // Important, Promotional, Social, Personal, Notification.
-  // We keep them lowercased here for easier matching and display.
-  const CATEGORIES = [
-    "important",
-    "promotional",
-    "social",
-    "personal",
-    "notification",
-  ];
-
-  const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-
-  // Helpers for category styling and icons
-  const slugify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const categoryIcon = (cat) => {
-    const c = String(cat).toLowerCase();
-    switch (c) {
-      case 'important': return '❗';
-      case 'promotional': return '🏷️';
-      case 'social': return '👥';
-      case 'personal': return '👤';
-      case 'notification': return '🔔';
-      // Legacy categories (kept for backward compatibility if old data exists)
-      case 'spam': return '🛑';
-      case 'newsletter': return '📰';
-      case 'business': return '💼';
-      case 'automated': return '⚙️';
-      default: return '🔖';
-    }
-  };
-
-    // Return a short one-line preview text for an email (sanitized)
-    const getPreview = (email) => {
-      try {
-        const raw = email.preview || email.snippet || email.body || "";
-        // Strip HTML tags by sanitizing with no allowed tags
-        const stripped = DOMPurify.sanitize(raw, { ALLOWED_TAGS: [] });
-        const single = String(stripped).replace(/\s+/g, ' ').trim();
-        return single.length > 120 ? `${single.slice(0, 117)}...` : single;
-      } catch (e) {
-        return "";
-      }
-    };
-
-  const [activeCategory, setActiveCategory] = useState("all"); // Tracks the active email category (use 'all' to show everything)
+  const [activeCategory, setActiveCategory] = useState("Inbox"); // Tracks the active email category
 
   // Light/Dark Mode state
   const [isDarkMode, setIsDarkMode] = useState(false);
   const toggleDarkMode = () => setIsDarkMode((dm) => !dm);
 
-  // Classifier service URL (can be overridden via env)
-  const classifierUrl = process.env.REACT_APP_CLASSIFIER_URL || "http://localhost:5001";
-  // Compose/LLM: call backend endpoint which uses server-side keys (OPENAI_API_KEY / PERPLEXITY_API_KEY)
-  const composeApiUrl = backendUrl ? `${backendUrl.replace(/\/$/, '')}/api/compose` : "";
-
-  // Right-side panel state: link classification results
-  const [sideItems, setSideItems] = useState([]);
-  const [sideLoading, setSideLoading] = useState(false);
-  const [sideError, setSideError] = useState(null);
-
-  // Fetch emails from the server or load demo emails when demoMode is enabled
+  // Fetch emails from the server
   const fetchEmails = useCallback(() => {
-    if (demoMode) {
-      try {
-        const formatted = demoEmails.map((email) => ({
-          ...email,
-          classification: Array.isArray(email.classification)
-            ? email.classification
-            : [email.classification],
-        }));
-        setEmails(formatted);
-        setFilteredEmails(formatted);
-        setLoading(false);
-      } catch (err) {
-        console.error('Failed to load demo emails', err);
-        setError('Failed to load demo emails.');
-        setLoading(false);
-      }
-      return;
-    }
-
-    fetch(`${backendUrl}/auth/gmail/emails`, {
+    fetch("https://localhost:5000/auth/gmail/emails", {
       method: "GET",
       credentials: "include",
     })
@@ -133,66 +51,13 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
         setError("Failed to load emails.");
         setLoading(false);
       });
-  }, [demoMode, demoEmails]);
+  }, []);
 
   useEffect(() => {
     fetchEmails();
-    if (!demoMode) {
-      const id = setInterval(fetchEmails, 30000);
-      return () => clearInterval(id);
-    }
-    return undefined;
-  }, [fetchEmails, demoMode]);
-
-  // When an email is selected, call classifier's /classify_links with the email body
-  useEffect(() => {
-    if (!selectedEmail) {
-      setSideItems([]);
-      setSideError(null);
-      setSideLoading(false);
-      return undefined;
-    }
-
-    let isSubscribed = true;
-    const controller = new AbortController();
-
-    const fetchLinks = async () => {
-      setSideLoading(true);
-      setSideError(null);
-      try {
-        const res = await fetch(`${classifierUrl}/classify_links`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ html: selectedEmail.body }),
-          signal: controller.signal,
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || `Status ${res.status}`);
-        }
-        const data = await res.json();
-        if (isSubscribed) {
-          setSideItems(Array.isArray(data.results) ? data.results : []);
-        }
-      } catch (err) {
-        if (isSubscribed) {
-          if (err.name === 'AbortError') return;
-          console.error('Error fetching link classifications:', err);
-          setSideError(err.message || 'Failed to fetch link classifications');
-          setSideItems([]);
-        }
-      } finally {
-        if (isSubscribed) setSideLoading(false);
-      }
-    };
-
-    fetchLinks();
-
-    return () => {
-      isSubscribed = false;
-      controller.abort();
-    };
-  }, [selectedEmail, classifierUrl]);
+    const id = setInterval(fetchEmails, 30000);
+    return () => clearInterval(id);
+  }, [fetchEmails]);
 
   // Merge sort algorithm for sorting emails
   const mergeSort = useCallback((arr, sortBy) => {
@@ -232,11 +97,10 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
         e.sender.toLowerCase().includes(searchQuery.toLowerCase())
     );
     updated = mergeSort(updated, sortCriteria);
-    if (activeCategory !== "all") {
-      updated = updated.filter((e) => {
-        const cls = Array.isArray(e.classification) ? e.classification : [e.classification];
-        return cls.some((c) => String(c).toLowerCase() === String(activeCategory).toLowerCase());
-      });
+    if (activeCategory !== "Inbox") {
+      updated = updated.filter((e) =>
+        e.classification.includes(activeCategory)
+      );
     }
     setFilteredEmails(updated);
   }, [searchQuery, sortCriteria, emails, activeCategory, mergeSort]);
@@ -261,73 +125,10 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
     setShowCompose(true);
   };
 
-  // Read user selected languages from settings/localStorage (fallback to navigator.language)
-  const getUserLanguages = () => {
-    try {
-      const raw = localStorage.getItem('user_languages');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      // ignore parse errors
-    }
-    return [navigator.language || 'en'];
-  };
-
-  // Lightweight language-aware phrase bank for autocomplete (minimal offline fallback)
-  const phraseBank = {
-    en: [
-      "Please let me know if you'd like any changes.",
-      "Looking forward to your response.",
-      "Let me know a convenient time to discuss.",
-      "Thanks and best regards,"
-    ],
-    es: [
-      "Por favor, házmelo saber si deseas cambios.",
-      "Quedo atento a tu respuesta.",
-      "Gracias y saludos,"
-    ],
-    fr: [
-      "Faites-moi savoir si vous souhaitez des modifications.",
-      "Dans l'attente de votre réponse.",
-      "Merci et cordialement,"
-    ]
-  };
-
-  // Lightweight suggestion generator: uses phrase bank for first matching language
-  const generateSuggestionFor = (text) => {
-    try {
-      const langs = getUserLanguages();
-      const primary = (langs && langs[0]) ? langs[0].split('-')[0] : 'en';
-      const bank = phraseBank[primary] || phraseBank['en'];
-      if (!text || text.trim().length < 3) return '';
-      // heuristic: if body already contains any bank phrase, don't suggest
-      for (const p of bank) if (text.includes(p)) return '';
-      // return the first bank phrase prefixed sensibly
-      return (text.trim().endsWith('.') ? ' ' : '. ') + bank[0];
-    } catch (e) {
-      return '';
-    }
-  };
-
-  // Update autocomplete suggestion when body changes
-  useEffect(() => {
-    const s = generateSuggestionFor(body);
-    setAutocompleteSuggestion(s);
-  }, [body]);
-
-  // Accept autocomplete suggestion (insert into body)
-  const acceptAutocomplete = () => {
-    if (!autocompleteSuggestion) return;
-    setBody((b) => b + autocompleteSuggestion);
-    setAutocompleteSuggestion('');
-  };
-
   // Send email
   const handleSendEmail = async () => {
     try {
-  const res = await fetch(`${backendUrl}/auth/gmail/send`, {
+      const res = await fetch("https://localhost:5000/auth/gmail/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -347,46 +148,6 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
     }
   };
 
-  // Call the configured compose API to generate text from prompt
-  const handleGenerateFromPrompt = async () => {
-    setComposeError(null);
-    if (!composeApiUrl) {
-      setComposeError('AI service unavailable. Ensure backend URL is configured in REACT_APP_BACKEND_URL and server has OPENAI_API_KEY set.');
-      return;
-    }
-    if (!composePrompt || composePrompt.trim().length === 0) {
-      setComposeError('Please enter a prompt.');
-      return;
-    }
-    setComposeGenerating(true);
-    try {
-      const payload = { prompt: composePrompt, context: body };
-      const headers = { 'Content-Type': 'application/json' };
-      const res = await fetch(composeApiUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || `Status ${res.status}`);
-      }
-      const data = await res.json();
-      // expect generated text in data.text or data.generated
-      const generated = data.text || data.generated || '';
-      if (!generated) throw new Error('No generated text returned');
-      // Insert generated text into body and close prompt
-      setBody((b) => (b ? b + '\n\n' + generated : generated));
-      setComposePrompt('');
-      setComposePromptOpen(false);
-    } catch (err) {
-      console.error('Compose API error:', err);
-      setComposeError(err.message || 'AI service error');
-    } finally {
-      setComposeGenerating(false);
-    }
-  };
-
   const formatDateTime = (d) =>
     new Date(d).toLocaleDateString(undefined, {
       year: "numeric",
@@ -398,7 +159,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
 
   const handleLogout = async () => {
     try {
-  await fetch(`${backendUrl}/api/logout`, {
+      await fetch("https://localhost:5000/api/logout", {
         method: "POST",
         credentials: "include",
       });
@@ -414,80 +175,55 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
 
   return (
     <div className={`homepage-container ${isDarkMode ? "dark-mode" : ""}`}>
-      {demoMode && (
-        <div style={{ position: 'fixed', top: 12, right: 12, zIndex: 50 }}>
-          <div style={{ background: '#d9534f', color: 'white', padding: '6px 10px', borderRadius: 6, fontWeight: 600, fontSize: '12px' }}>Demo Mode — sample data</div>
-        </div>
-      )}
       {/* Sidebar */}
       <div className={`sidebar ${sidebarVisible ? "visible" : ""}`}>
-        <div className="sidebar-inner">
-          <ul className="sidebar-category-list">
-            {["all", ...CATEGORIES].map((catKey) => (
-              <li key={catKey}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveCategory(catKey);
-                    setCurrentPage(1);
-                  }}
-                  className={
-                    activeCategory === catKey
-                      ? "sidebar-category-button active"
-                      : "sidebar-category-button"
-                  }
-                >
-                  <span className="sidebar-category-chip">
-                    {catKey === "all" ? "All" : capitalize(catKey)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div className="sidebar-actions">
-            <button
-              type="button"
-              className="sidebar-action-button primary"
-              onClick={() => handleComposeToggle("new")}
-            >
-              Compose
-            </button>
-            <button
-              type="button"
-              className="sidebar-action-button"
-              onClick={handleLogout}
-            >
-              Logout
-            </button>
-          </div>
-        </div>
+        <ul>
+          {["Inbox", "Important", "Drafts", "Spam"].map((cat) => (
+            <li key={cat}>
+              <a onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}>
+                {cat}
+              </a>
+            </li>
+          ))}
+          <li>
+            <a onClick={() => handleComposeToggle("new")}>Compose</a>
+          </li>
+          <li>
+            <a onClick={handleLogout}>Logout</a> {/* Logout button */}
+          </li>
+        </ul>
       </div>
 
       {/* Main Content */}
       <div className="main-content">
         <header>
-          <div className="top-left">
+          <div>
             <button
               className="hamburger-icon"
               onClick={() => setSidebarVisible((v) => !v)}
-              aria-label="Toggle sidebar"
             >
               &#9776;
             </button>
-            <h1 className="top-bar-title">ImfrisivMail</h1>
-            <img
-              src="/assets/images/imfrisiv.png"
-              alt="Logo"
-              className="top-bar-logo"
+            <img 
+              src="/assets/images/imfrisiv.png" 
+              alt="Logo" 
+              className="top-bar-logo" 
             />
+            <h1 className="top-bar-title">ImfrisivMail</h1>
+          </div>
+        </header>
 
-            <span className="header-divider" aria-hidden="true" />
-
-            <div className="top-controls">
+        {!selectedEmail ? (
+          <>
+            <header class="second-header-bar">
               <div className="search-bar">
-                {/* Sort Dropdown */}
+                <input
+                  type="text"
+                  placeholder="Search emails…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
                 <select
-                  className="sort-dropdown"
                   value={sortCriteria}
                   onChange={(e) => setSortCriteria(e.target.value)}
                 >
@@ -495,37 +231,17 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                   <option value="sender">Sort by Sender</option>
                   <option value="subject">Sort by Subject</option>
                 </select>
-                
-                {/* Search Bar */}
-                <input
-                  className="search-input"
-                  type="text"
-                  placeholder="🔍 Search emails…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-
-                {/* Dark Mode/Light Mode Switch/Toggle */}
-                {/* Theme toggle moved to header right — kept empty here for spacing */}
+                {/* Light / Dark Mode Switch */}
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={isDarkMode}
+                    onChange={toggleDarkMode}
+                  />
+                  <span className="slider" />
+                </label>
               </div>
-            </div>
-          </div>
-          {/* Theme toggle button on the far right of the header */}
-          <div className="top-right">
-            <button
-              className="theme-toggle-button"
-              onClick={toggleDarkMode}
-              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-              title={isDarkMode ? "Dark Mode" : "Light Mode"}
-            >
-              <span className="theme-icon" aria-hidden>{isDarkMode ? '🌙' : '☀️'}</span>
-            </button>
-          </div>
-        </header>
-
-        {!selectedEmail ? (
-          <>
-            {/* search controls moved to top header */}
+            </header>
 
             {/* Email List */}
             <div className="email-list-container">
@@ -535,39 +251,12 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                   className="email-item"
                   onClick={() => setSelectedEmail(email)}
                 >
-                  <div className="email-row">
-                    <div className="email-from">
-                      <span className="detail-meta-label-chip list-meta-label">Sender</span>
-                      <span className="email-from-value">{email.sender}</span>
-                    </div>
-                    <div className="email-subject">
-                      <span className="detail-meta-label-chip list-meta-label">Subject</span>
-                      <span className="email-subject-value">{email.subject}</span>
-                    </div>
-
-                    <div className="email-labels-inline">
-                      {Array.isArray(email.classification)
-                        ? email.classification.map((c, i) => (
-                            <span key={i} className={`label-chip ${slugify(c)}`}>
-                              <span className="label-icon" aria-hidden>{categoryIcon(c)}</span>
-                              <span className="label-text">{capitalize(String(c).toLowerCase())}</span>
-                            </span>
-                          ))
-                        : (
-                          <span className={`label-chip ${slugify(email.classification)}`}>
-                            <span className="label-icon" aria-hidden>{categoryIcon(email.classification)}</span>
-                            <span className="label-text">{capitalize(String(email.classification))}</span>
-                          </span>
-                        )
-                      }
-                    </div>
-
-                    <div className="email-date">
-                      <span className="detail-meta-label-chip list-meta-label">Date</span>
-                      <span className="email-date-value">{formatDateTime(email.date)}</span>
-                    </div>
-                  </div>
-                  <div className="email-preview">{getPreview(email)}</div>
+                  <h3>{email.subject}</h3>
+                  <p>From: {email.sender}</p>
+                  <p>Classification: {email.classification.join(", ")}</p>
+                  <p className="date-time">
+                    Date: {formatDateTime(email.date)}
+                  </p>
                 </div>
               ))}
             </div>
@@ -589,102 +278,32 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
             </div>
           </>
         ) : (
-          /* Email Detail View - two column layout (main + right panel) */
-          <div className="email-detail-layout">
-            <div className="email-detail-container email-detail-main">
-              <div className="detail-header-row">
-                <button
-                  className="back-button"
-                  onClick={() => setSelectedEmail(null)}
-                  aria-label="Back to message list"
-                >
-                  ← Inbox
-                </button>
-                <button
-                  className="reply-button"
-                  onClick={() => handleComposeToggle("reply", selectedEmail)}
-                >
-                  Reply
-                </button>
-              </div>
-              <h2 className="email-detail-subject">
-                <span className="detail-meta-label-chip">Subject</span>
-                <span className="detail-meta-value">{selectedEmail.subject}</span>
-              </h2>
-              <h2 className="email-detail-sender">
-                <span className="detail-meta-label-chip">Sender</span>
-                <span className="detail-meta-value">{selectedEmail.sender}</span>
-              </h2>
-              <div className="detail-divider" />
-              <p className="date-time detail-meta-date">
-                <span className="detail-meta-label-chip">Date</span>
-                <span className="detail-meta-value">{formatDateTime(selectedEmail.date)}</span>
-              </p>
-              <div className="detail-divider" />
-              <div className="detail-classification-row">
-                <span className="detail-classification-label">Classification:</span>
-                <div className="detail-classification-chips">
-                  {Array.isArray(selectedEmail.classification)
-                    ? selectedEmail.classification.map((c, idx) => (
-                        <span key={idx} className={`label-chip ${slugify(c)}`}>
-                          <span className="label-icon" aria-hidden>{categoryIcon(c)}</span>
-                          <span className="label-text">
-                            {capitalize(String(c).toLowerCase())}
-                          </span>
-                        </span>
-                      ))
-                    : (
-                        <span className={`label-chip ${slugify(selectedEmail.classification)}`}>
-                          <span className="label-icon" aria-hidden>
-                            {categoryIcon(selectedEmail.classification)}
-                          </span>
-                          <span className="label-text">
-                            {capitalize(String(selectedEmail.classification))}
-                          </span>
-                        </span>
-                      )}
-                </div>
-              </div>
-              <div className="detail-divider" />
-              <div
-                className="email-body"
-                dangerouslySetInnerHTML={{
-                  __html: DOMPurify.sanitize(selectedEmail.body),
-                }}
-              />
-            </div>
-
-            {/* Right-side panel: link classifications */}
-            <aside className="email-detail-side">
-              <h4>Link Classifications</h4>
-              {sideLoading ? (
-                <p>Scanning links...</p>
-              ) : sideError ? (
-                <p className="side-error">Error: {sideError}</p>
-              ) : sideItems.length === 0 ? (
-                <p className="side-empty">No links found.</p>
-              ) : (
-                <ul className="side-list">
-                  {sideItems.map((it, i) => {
-                    const normalized = String(it.prediction || '').toLowerCase();
-                    let labelClass = 'link-prediction-default';
-                    if (normalized === 'phishing') labelClass = 'link-prediction-phishing';
-                    else if (normalized === 'legitimate') labelClass = 'link-prediction-legitimate';
-
-                    return (
-                      <li key={i} className="side-list-item">
-                        <div className="side-url" title={it.url}>{it.url}</div>
-                        <div className="side-meta-row">
-                          <span className={`link-prediction-chip ${labelClass}`}>
-                            {normalized || 'unknown'}
-                          </span>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </aside>
+          /* Email Detail View */
+          <div className="email-detail-container">
+            <button
+              className="back-button"
+              onClick={() => setSelectedEmail(null)}
+            >
+              Back
+            </button>
+            <h2>Sender: {selectedEmail.sender}</h2>
+            <h3>Subject: {selectedEmail.subject}</h3>
+            <p>Classification: {selectedEmail.classification.join(", ")}</p>
+            <p className="date-time">
+              Date: {formatDateTime(selectedEmail.date)}
+            </p>
+            <div
+              className="email-body"
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(selectedEmail.body),
+              }}
+            />
+            <button
+              className="reply-button"
+              onClick={() => handleComposeToggle("reply", selectedEmail)}
+            >
+              Reply
+            </button>
           </div>
         )}
 
@@ -717,52 +336,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
                 placeholder="Write your email here..."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                onKeyDown={(e) => {
-                  // Accept suggestion with Tab
-                  if (e.key === 'Tab' && autocompleteSuggestion) {
-                    e.preventDefault();
-                    acceptAutocomplete();
-                  }
-                  // Ctrl+Space to open AI prompt quickly
-                  if (e.key === ' ' && e.ctrlKey) {
-                    e.preventDefault();
-                    setComposePromptOpen(true);
-                  }
-                }}
               />
-              {/* Autocomplete suggestion inline */}
-              {autocompleteSuggestion && (
-                <div className="autocomplete-suggestion" onClick={acceptAutocomplete} role="button" tabIndex={0}>
-                  Suggestion: <span style={{ fontStyle: 'italic' }}>{autocompleteSuggestion.trim()}</span> — click or press Tab to accept
-                </div>
-              )}
-
-              {/* LLM / Compose helpers */}
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-                <button onClick={() => setComposePromptOpen((s) => !s)} title="Open AI compose prompt">✨ AI</button>
-                <div style={{ color: 'var(--muted)', fontSize: 13 }}>
-                  {composeApiUrl ? 'AI features enabled' : 'AI disabled (no REACT_APP_COMPOSE_API_URL)'}
-                </div>
-                {composeError && <div style={{ color: 'var(--danger)', marginLeft: 8 }}>{composeError}</div>}
-              </div>
-
-              {/* Prompt UI */}
-              {composePromptOpen && (
-                <div className="compose-prompt-overlay">
-                  <textarea
-                    placeholder="Give the AI a prompt: tone, length, context..."
-                    value={composePrompt}
-                    onChange={(e) => setComposePrompt(e.target.value)}
-                    rows={4}
-                    style={{ width: '100%' }}
-                  />
-                  <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                    <button onClick={handleGenerateFromPrompt} disabled={composeGenerating}>{composeGenerating ? 'Generating…' : 'Generate'}</button>
-                    <button onClick={() => { setComposePromptOpen(false); setComposePrompt(''); }}>Cancel</button>
-                  </div>
-                </div>
-              )}
-
               <button onClick={handleSendEmail}>Send</button>
             </div>
           </div>

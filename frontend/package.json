@@ -10,22 +10,19 @@
     "axios": "^1.7.7",
     "dompurify": "^3.2.1",
     "gapi-script": "^1.2.0",
-    "i18next": "^25.5.2",
+    "i18next": "^25.1.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-i18next": "^15.7.3",
+    "react-i18next": "^15.5.1",
     "react-router-dom": "^7.0.1",
     "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-  "start": "set HTTPS=true&&set PORT=5003&&set SSL_CRT_FILE=ssl/localhost-cert.pem&&set SSL_KEY_FILE=ssl/localhost-key.pem&&react-scripts start",
-    "start:demo": "set REACT_APP_DEMO=true&&set HTTPS=true&&set PORT=5003&&set SSL_CRT_FILE=ssl/localhost-cert.pem&&set SSL_KEY_FILE=ssl/localhost-key.pem&&react-scripts start",
+    "start": "set HTTPS=true&&set PORT=5002&&set SSL_CRT_FILE=ssl/localhost-cert.pem&&set SSL_KEY_FILE=ssl/localhost-key.pem&&react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "install:force": "npm install --force",
-    "install:legacy": "npm install --legacy-peer-deps"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

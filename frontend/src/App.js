@@ -8,10 +8,6 @@ import GmailLogo from "./assets/Gmail_logo.png"; // Gmail logo for the UI
 import GroupLogo from "./assets/F (1).png"; // Application group logo
 import DefaultLogo from "./assets/imfrisiv.png"; // Default logo
 import Homepage from "./components/Homepage"; // Homepage component
-import demoData from "./demo-data/sample-emails.json";
-
-// Demo mode detection: only enable when explicitly requested via button
-const isDemo = (typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('demo') === '1');
 
 function App() {
   // State variables for managing email, password, and login state
@@ -36,29 +32,26 @@ function App() {
   }, []);
 
   // Function to handle Gmail login via OAuth
-  const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002";
-  const frontendUrl = window.location.origin;
   const handleGmailLogin = () => {
-    window.location.href = `${backendUrl}/auth/gmail/login?redirect=${encodeURIComponent(frontendUrl)}`;
+    window.location.href = "https://localhost:5000/auth/gmail/login"; // Redirect to backend Gmail OAuth login
   };
 
   // Function to handle email and password login with the backend
   const handleEmailLogin = async () => {
     if (email && password) {
       try {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002"; // Use environment variable or default to 5003
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5003"; // Use environment variable or default to 5003
         // Send email and password to the backend for authentication
-        const response = await axios.post(
-          `${backendUrl}/api/login`,
-          { email, password },
-          { withCredentials: true }
-        );
+        const response = await axios.post(`${backendUrl}/api/login`, {
+          email,
+          password,
+        });
 
         console.log("Login successful:", response.data); // Log success response
         setLoginError(null); // Clear any previous login errors
 
-    // Redirect to Gmail login after successful email/password login
-    window.location.href = `${backendUrl}/auth/gmail/login?redirect=${encodeURIComponent(frontendUrl)}`;
+        // Redirect to Gmail login after successful email/password login
+        window.location.href = "https://localhost:5000/auth/gmail/login";
       } catch (error) {
         console.error("Login failed:", error.response ? error.response.data.message : error.message); // Log error
         setLoginError("Invalid email or password."); // Display error message
@@ -72,13 +65,6 @@ function App() {
   const useGroupLogo = process.env.REACT_APP_USE_GROUP_LOGO === "true";
   const logo = useGroupLogo ? GroupLogo : DefaultLogo;
   const appName = useGroupLogo ? "SiFri Mail" : "ImfrisivMail";
-  
-  // Clear any existing demo flag on initial load to prevent accidental demo mode
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('demo')) {
-      window.localStorage.removeItem('demo');
-    }
-  }, []);
 
   return (
     <Router>
@@ -88,10 +74,6 @@ function App() {
           element={
             <div className="container">
               <div className="form-section">
-                    {/* Demo Mode badge (visible always on login screen) */}
-                    <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 20 }}>
-                      <div style={{ background: '#d9534f', color: 'white', padding: '6px 10px', borderRadius: 6, fontWeight: 600, fontSize: '12px' }}>Demo Mode</div>
-                    </div>
                 <img src={logo} alt="App Logo" className="group-logo" />
                 <h1 className="title">{appName}</h1>
                 <p className="subtitle">Welcome</p>
@@ -133,26 +115,6 @@ function App() {
                   {loginError && <p className="error-message">{loginError}</p>}
                 </div>
                 <p className="or-text">or continue with</p>
-                {/* Enter Demo Button */}
-                <div style={{ marginTop: 8 }}>
-                  <button
-                    className="button"
-                    style={{ backgroundColor: '#6c757d', border: 'none', color: 'white' }}
-                    onClick={() => {
-                      try {
-                        if (typeof window !== 'undefined' && window.localStorage) {
-                          window.localStorage.setItem('demo', '1');
-                        }
-                      } catch (e) {
-                        console.warn('Failed to set demo flag in localStorage', e);
-                      }
-                      // navigate to home (demo param kept for compatibility)
-                      window.location.href = '/home?demo=1';
-                    }}
-                  >
-                    Enter demo
-                  </button>
-                </div>
                 <div className="account-circles">
                   {/* Gmail login */}
                   <div className="account-circle" onClick={handleGmailLogin}>
@@ -163,7 +125,7 @@ function App() {
             </div>
           }
         />
-  <Route path="/home" element={<Homepage demoMode={isDemo} demoEmails={demoData.emails} />} />
+        <Route path="/home" element={<Homepage />} />
       </Routes>
     </Router>
   );
