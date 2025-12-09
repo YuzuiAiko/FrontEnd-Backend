@@ -14,32 +14,34 @@ const app = express(); // Create an Express application instance
 
 app.use(bodyParser.json()); // Use body-parser to parse JSON request bodies
 
-const allowedOrigins = [
-  // Localhost (HTTPS)
-  "https://localhost:3000",
-  "https://localhost:5002",
-  "https://localhost:5000",
-  "https://localhost:5003",
-  "https://localhost:5173",
-  // Localhost (HTTP)
-  "http://localhost:3000",
-  "http://localhost:5002",
-  "http://localhost:5000",
-  "http://localhost:5003",
-  "http://localhost:5173",
-  // 127.0.0.1 loopback (HTTPS)
-  "https://127.0.0.1:3000",
-  "https://127.0.0.1:5002",
-  "https://127.0.0.1:5000",
-  "https://127.0.0.1:5003",
-  "https://127.0.0.1:5173",
-  // 127.0.0.1 loopback (HTTP)
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:5002",
-  "http://127.0.0.1:5000",
-  "http://127.0.0.1:5003",
-  "http://127.0.0.1:5173",
-];
+// Parse allowed origins from environment variable or use defaults
+const allowedOriginsEnv = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim().replace(/^"|"$/g, ""))
+  : [
+      // Default localhost origins
+      "https://localhost:3000",
+      "https://localhost:5002",
+      "https://localhost:5000",
+      "https://localhost:5003",
+      "https://localhost:5173",
+      "http://localhost:3000",
+      "http://localhost:5002",
+      "http://localhost:5000",
+      "http://localhost:5003",
+      "http://localhost:5173",
+      "https://127.0.0.1:3000",
+      "https://127.0.0.1:5002",
+      "https://127.0.0.1:5000",
+      "https://127.0.0.1:5003",
+      "https://127.0.0.1:5173",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:5002",
+      "http://127.0.0.1:5000",
+      "http://127.0.0.1:5003",
+      "http://127.0.0.1:5173",
+    ];
+
+const allowedOrigins = allowedOriginsEnv;
 
 app.use(
   cors({
