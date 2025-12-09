@@ -2,7 +2,9 @@ import React, { useEffect, useState, useCallback } from "react";
 import DOMPurify from "dompurify"; // To sanitize HTML and prevent XSS attacks
 import "./homepage.css"; // Importing styles for the component
 
-const Homepage = ({ userEmail }) => {
+const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002";
+  const classifierUrl = process.env.REACT_APP_CLASSIFIER_URL || "http://localhost:5001";
   // State hooks for managing various aspects of the component
   const [emails, setEmails] = useState([]); // Stores the fetched emails
   const [loading, setLoading] = useState(true); // Tracks loading state
@@ -24,7 +26,17 @@ const Homepage = ({ userEmail }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const toggleDarkMode = () => setIsDarkMode((dm) => !dm);
 
-  // Fetch emails from the server
+  // Classifier service URL (can be overridden via env)
+
+  // Compose/LLM: call backend endpoint which uses server-side keys (OPENAI_API_KEY / PERPLEXITY_API_KEY)
+  const composeApiUrl = backendUrl ? `${backendUrl.replace(/\/$/, '')}/api/compose` : "";
+
+  // Right-side panel state: link classification results
+  const [sideItems, setSideItems] = useState([]);
+  const [sideLoading, setSideLoading] = useState(false);
+  const [sideError, setSideError] = useState(null);
+
+  // Fetch emails from the server or load demo emails when demoMode is enabled
   const fetchEmails = useCallback(() => {
     const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002";
     fetch(`${backendUrl}/auth/gmail/emails`, {

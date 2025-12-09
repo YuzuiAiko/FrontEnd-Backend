@@ -1,3 +1,93 @@
 node_modules
 backend/.env
 frontend/.env
+.env
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+client/venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Warp
+WARP.md
+
+# Build and log files
+dist
+build
+coverage
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Environment files
+*.env.local
+*.env.development
+*.env.production
+.vercel
+
+# Python-related files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+*.whl
+
+# GitHub-related files
+.github
+.github
+
+# IDE and editor files
+.idea
+.vscode
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# SSL certificates
+ssl/
+
+# Other
+.DS_Store
+Thumbs.db
+>>>>>>> enh-phishing
+
+# Classifier output files
+backend/classifier/output/
