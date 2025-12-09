@@ -20,9 +20,11 @@ except Exception:
     _TLDEXTRACT_AVAILABLE = False
 
 # -------------------------------------------------------------
-# CONFIG – Top-1M domain list location (user-provided path)
+# CONFIG – Top-1M domain list location (machine-agnostic, relative)
 # -------------------------------------------------------------
-TOP1M_CSV_PATH = r"C:\Users\CHRISTIAN\OneDrive\Desktop\Desktop\FrontEnd-Backend\backend\classifier\top-1m.csv"
+# Use a path relative to this module so the code works across machines
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TOP1M_CSV_PATH = os.path.join(BASE_DIR, 'training_data', 'top-1m.csv')
 
 # We load domains lazily and store them in memory
 TOP_DOMAINS = None
