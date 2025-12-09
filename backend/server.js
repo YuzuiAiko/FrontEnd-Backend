@@ -10,11 +10,15 @@ const app = express(); // Create an Express application instance
 
 app.use(bodyParser.json()); // Use body-parser to parse JSON request bodies
 
-const allowedOrigins = [
-  "https://localhost:3000",
-  "https://localhost:5002",
-  "https://localhost:5000",
-];
+// Parse allowed origins from environment variable or use defaults
+const allowedOriginsEnv = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim().replace(/^"|"$/g, ""))
+  : [
+      "https://localhost:3000",
+      "https://localhost:5002",
+      "https://localhost:5000",
+    ];
+const allowedOrigins = allowedOriginsEnv;
 
 app.use(
   cors({

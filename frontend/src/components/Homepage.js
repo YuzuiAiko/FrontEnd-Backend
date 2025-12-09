@@ -26,7 +26,8 @@ const Homepage = ({ userEmail }) => {
 
   // Fetch emails from the server
   const fetchEmails = useCallback(() => {
-    fetch("https://localhost:5000/auth/gmail/emails", {
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002";
+    fetch(`${backendUrl}/auth/gmail/emails`, {
       method: "GET",
       credentials: "include",
     })
@@ -128,7 +129,8 @@ const Homepage = ({ userEmail }) => {
   // Send email
   const handleSendEmail = async () => {
     try {
-      const res = await fetch("https://localhost:5000/auth/gmail/send", {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002";
+    const res = await fetch(`${backendUrl}/auth/gmail/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -159,7 +161,8 @@ const Homepage = ({ userEmail }) => {
 
   const handleLogout = async () => {
     try {
-      await fetch("https://localhost:5000/api/logout", {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002";
+      await fetch(`${backendUrl}/api/logout`, {
         method: "POST",
         credentials: "include",
       });

@@ -33,7 +33,8 @@ function App() {
 
   // Function to handle Gmail login via OAuth
   const handleGmailLogin = () => {
-    window.location.href = "https://localhost:5000/auth/gmail/login"; // Redirect to backend Gmail OAuth login
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002";
+    window.location.href = `${backendUrl}/auth/gmail/login`; // Redirect to backend Gmail OAuth login
   };
 
   // Function to handle email and password login with the backend
@@ -51,7 +52,8 @@ function App() {
         setLoginError(null); // Clear any previous login errors
 
         // Redirect to Gmail login after successful email/password login
-        window.location.href = "https://localhost:5000/auth/gmail/login";
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:5002";
+        window.location.href = `${backendUrl}/auth/gmail/login`;
       } catch (error) {
         console.error("Login failed:", error.response ? error.response.data.message : error.message); // Log error
         setLoginError("Invalid email or password."); // Display error message
