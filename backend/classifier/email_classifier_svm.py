@@ -1,4 +1,5 @@
 # Imports
+import os
 import json
 import re
 import spacy
@@ -26,6 +27,49 @@ NUM_PATTERN = r"\b\d+\b"
 def strip_html(text):
   soup = BeautifulSoup(text, "html.parser")
   return soup.get_text(" ", strip=True)
+
+
+# Backwards-compatible helper functions expected by old tests
+def to_lowercase(text: str) -> str:
+    return text.lower()
+
+
+def convert_newlines(text: str) -> str:
+    return text.replace('\n', ' ')
+
+
+def drop_special_chars(text: str) -> str:
+    # remove common punctuation but keep whitespace and alphanumerics
+    return re.sub(r"[^\w\s]", "", text)
+
+
+def replace_regex(text: str) -> str:
+    # Replace common patterns with angle-bracket tokens (old tests expect <EMAIL>, <URL>, <DATE>)
+    t = re.sub(URL_PATTERN, "<URL>", text)
+    t = re.sub(EMAIL_PATTERN, "<EMAIL>", t)
+    t = re.sub(DATE_PATTERN, "<DATE>", t)
+    t = re.sub(PHONE_PATTERN, "<PHONE>", t)
+    t = re.sub(NUM_PATTERN, "<NUM>", t)
+    return t
+
+
+def replace_ner(text: str) -> str:
+    # Replace named entities with their entity type in angle brackets
+    doc = nlp(text)
+    out = []
+    last = 0
+    for ent in doc.ents:
+        out.append(text[last:ent.start_char])
+        out.append(f"<{ent.label_}>")
+        last = ent.end_char
+    out.append(text[last:])
+    return ''.join(out)
+
+
+def preprocess_text(text: str) -> str:
+    # Older tests expect a preprocess_text symbol — map to the new preprocess
+    # Ensure returned text is fully lowercase to remain compatible with legacy tests
+    return preprocess(text).lower()
 
 def preprocess(text):
   # 1. Lowercase
@@ -78,8 +122,11 @@ import json
 texts = []
 labels = []
 
-# Open json
-with open(r"training_data\training_emails.json", "r", encoding="utf-8") as f:
+# Open json (module-relative path so imports work from repo root or tests)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TRAINING_EMAILS_PATH = os.path.join(BASE_DIR, 'training_data', 'training_emails.json')
+
+with open(TRAINING_EMAILS_PATH, "r", encoding="utf-8") as f:
     emails = json.load(f)
 
 for email in emails:

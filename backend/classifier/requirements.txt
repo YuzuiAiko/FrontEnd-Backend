@@ -9,3 +9,4 @@ matplotlib>=3.10.7
 kaggle>=1.7.4.5
 spacy
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0.tar.gz#egg=en_core_web_sm
+pytest>=7.0.0
