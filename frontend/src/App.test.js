@@ -1,5 +1,4 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 
 // Mock axios
@@ -24,13 +23,7 @@ global.gapi = {
 delete window.location;
 window.location = { href: '' };
 
-const renderApp = () => {
-  return render(
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  );
-};
+const renderApp = () => render(<App />);
 
 describe('App Component', () => {
   beforeEach(() => {
