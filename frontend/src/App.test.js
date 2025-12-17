@@ -32,7 +32,10 @@ describe('App Component', () => {
   });
 
   test('renders login form', () => {
-    renderApp();
+    const { container } = renderApp();
+    // debug DOM when failing locally
+    // eslint-disable-next-line no-console
+    console.log('APP_TEST_DOM:', container.innerHTML);
     expect(screen.getByPlaceholderText(/enter your email/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/enter password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument();
