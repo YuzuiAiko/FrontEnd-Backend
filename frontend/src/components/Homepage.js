@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import DOMPurify from "dompurify"; // To sanitize HTML and prevent XSS attacks
 import "./homepage.css"; // Importing styles for the component
 
@@ -37,6 +37,10 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
     "personal",
     "notification",
   ];
+
+  // Hover tooltip for classified links
+  const emailBodyRef = useRef(null);
+  const [linkTooltip, setLinkTooltip] = useState(null);
 
   const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
@@ -194,6 +198,53 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
       controller.abort();
     };
   }, [selectedEmail, classifierUrl]);
+
+  useEffect(() => {
+    if (!emailBodyRef.current || !Array.isArray(sideItems)) return;
+
+    const links = emailBodyRef.current.querySelectorAll("a[href]");
+
+    links.forEach(link => {
+      const href = link.getAttribute("href");
+      if (!href) return;
+
+      const match = sideItems.find(it => it.url === href);
+      if (!match) return;
+
+      link.dataset.prediction = match.prediction || "unknown";
+      link.classList.add("email-link-with-prediction");
+    });
+  }, [sideItems]);
+
+  useEffect(() => {
+    const container = emailBodyRef.current;
+    if (!container) return;
+
+    function onMouseOver(e) {
+      const link = e.target.closest("a.email-link-with-prediction");
+      if (!link) return;
+
+      setLinkTooltip({
+        prediction: (link.dataset.prediction || 'unknown').toLowerCase(),
+        x: e.pageX,
+        y: e.pageY,
+      });
+    }
+
+    function onMouseOut(e) {
+      if (e.target.closest("a.email-link-with-prediction")) {
+        setLinkTooltip(null);
+      }
+    }
+
+    container.addEventListener("mouseover", onMouseOver);
+    container.addEventListener("mouseout", onMouseOut);
+
+    return () => {
+      container.removeEventListener("mouseover", onMouseOver);
+      container.removeEventListener("mouseout", onMouseOut);
+    };
+  }, [selectedEmail]);
 
   // Merge sort algorithm for sorting emails
   const mergeSort = useCallback((arr, sortBy) => {
@@ -648,6 +699,7 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
               </div>
               <div className="detail-divider" />
               <div
+                ref={emailBodyRef}
                 className="email-body"
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(selectedEmail.body),
@@ -768,6 +820,26 @@ const Homepage = ({ userEmail, demoMode = false, demoEmails = [] }) => {
             </div>
           </div>
         )}
+
+      {/* Render Tooltip */}
+      {linkTooltip && (
+        <div
+          className={`link-tooltip ${linkTooltip.prediction}`}
+          style={{
+            top: linkTooltip.y + 14,
+            left: linkTooltip.x + 14,
+          }}
+        >
+          <span className="tooltip-icon" aria-hidden>
+            {linkTooltip.prediction === "phishing" ? "⚠️" : "✅"}
+          </span>
+          <span className="tooltip-text">
+            {linkTooltip.prediction}
+          </span>
+          <span className="tooltip-arrow" />
+        </div>
+      )}
+
       </div>
     </div>
   );
