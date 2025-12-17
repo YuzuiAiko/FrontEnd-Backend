@@ -7,8 +7,8 @@ jest.mock('axios');
 axios.get = jest.fn();
 axios.post = jest.fn();
 
-// Mock fetch
-global.fetch = jest.fn();
+// Mock fetch — provide a safe default that returns an empty email list.
+global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: async () => ({ emails: [] }) }));
 
 // Mock DOMPurify
 jest.mock('dompurify', () => ({
