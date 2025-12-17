@@ -3,10 +3,14 @@ firebase_admin>=6.6.0
 Flask>=3.1.0
 flask_cors>=5.0.0
 joblib>=1.4.2
-scikit_learn>=1.6.0
+scikit-learn>=1.6.0
 pandas>=2.3.3
 matplotlib>=3.10.7
 kaggle>=1.7.4.5
-spacy
+spacy>=3.7.0
+# Optional helper used in domain extraction
+tldextract>=3.4.0
+# spaCy small English model (installable via pip from GitHub release)
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0.tar.gz#egg=en_core_web_sm
+# Test tooling
 pytest>=7.0.0
