@@ -79,7 +79,7 @@ texts = []
 labels = []
 
 # Open json
-with open(r"backend\classifier\training_data\training_emails.json", "r", encoding="utf-8") as f:
+with open(r"training_data\training_emails.json", "r", encoding="utf-8") as f:
     emails = json.load(f)
 
 for email in emails:
@@ -137,3 +137,13 @@ def classify(emails):
     predictions = [predict_email_label(email) for email in emails]
 
     return predictions
+
+if __name__ == "__main__":
+    # Evaluate model
+    y_pred = model.predict(X_test)
+
+    print("Classification Report:")
+    print(classification_report(y_test, y_pred))
+
+    print("Confusion Matrix:")
+    print(confusion_matrix(y_test, y_pred))
