@@ -42,6 +42,8 @@ describe('Homepage Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     fetch.mockClear();
+    // Ensure fetch returns a resolved promise by default for tests that don't override it
+    fetch.mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({ emails: [] }) }));
   });
 
   test('renders in demo mode with demo emails', () => {
