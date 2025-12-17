@@ -194,8 +194,10 @@ describe('Homepage Component', () => {
     render(<Homepage demoMode={true} demoEmails={mockEmails} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/important/i)).toBeInTheDocument();
-      expect(screen.getByText(/promotional/i)).toBeInTheDocument();
+      const importantLabels = screen.getAllByText(/important/i);
+      const promotionalLabels = screen.getAllByText(/promotional/i);
+      expect(importantLabels.length).toBeGreaterThan(0);
+      expect(promotionalLabels.length).toBeGreaterThan(0);
     });
   });
 
