@@ -43,3 +43,27 @@ install:
 	cd backend && npm install --legacy-peer-deps --verbose
 	@echo "Installing Node.js dependencies for frontend..."
 	cd frontend && npm install --legacy-peer-deps --verbose
+
+# Test targets for each microservice and an aggregate target
+.PHONY: test test-classifier test-backend test-frontend test-all
+
+# Run classifier (python) tests only
+test-classifier:
+	@echo "Running classifier (Python) tests..."
+	python -m pytest backend/classifier
+
+# Run backend (node) tests only
+test-backend:
+	@echo "Running backend (Node) tests..."
+	cd backend && npm test
+
+# Run frontend (react) tests only
+test-frontend:
+	@echo "Running frontend (React) tests..."
+	cd frontend && npm test -- --watchAll=false
+
+# Run all tests in sequence
+test-all: test-classifier test-backend test-frontend
+
+# Default test alias
+test: test-all
