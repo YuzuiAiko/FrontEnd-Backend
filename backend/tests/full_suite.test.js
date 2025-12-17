@@ -7,7 +7,10 @@ import path from 'path';
 function runNodeModule(script, envOverrides = {}) {
   const nodeArgs = ['--input-type=module', '-e', script];
   const env = { ...process.env, ...envOverrides };
-  const result = spawnSync(process.execPath, nodeArgs, { env, encoding: 'utf8' });
+  // Ensure child runs from repository root so relative imports like './backend/config.js'
+  // resolve consistently whether tests are invoked from backend/ or repo root.
+  const repoRoot = path.resolve(process.cwd(), '..');
+  const result = spawnSync(process.execPath, nodeArgs, { env, encoding: 'utf8', cwd: repoRoot });
   if (result.error) throw result.error;
   return { stdout: result.stdout, stderr: result.stderr, status: result.status };
 }
