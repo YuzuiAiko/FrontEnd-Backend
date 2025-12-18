@@ -200,6 +200,8 @@ def classify_links_route():
                 pred = f"error: {e}"
             results.append({"url": href, "prediction": pred})
 
+        print("Link classification results:", results)
+        
         return jsonify({"results": results}), 200
     except Exception as e:
         print("Error in /classify_links route:", e)
